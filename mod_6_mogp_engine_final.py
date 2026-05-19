@@ -127,8 +127,8 @@ def main():
     toolbox.register("evaluate", evaluate_rule, manager=manager)
 
     # FINAL METHODOLOGY CONSTRAINTS
-    POP_SIZE = 150
-    NGEN = 20
+    POP_SIZE = 300
+    NGEN = 40
 
     pop = toolbox.population(n=POP_SIZE)
     hof = tools.ParetoFront()  # Will store the non-dominated rules
@@ -138,9 +138,9 @@ def main():
     stats.register("max", np.max, axis=0)
 
     print(f"\n--- Commencing Multi-Objective Symbolic Regression (FINAL RUN) ---")
-    print(f"Population: {POP_SIZE} | Generations: {NGEN} | Datasets Evaluated Per Rule: 10\n")
+    print(f"Population: {POP_SIZE} | Generations: {NGEN} | Datasets Evaluated Per Rule: 20\n")
     print(
-        "This will execute up to 40,000 PyTorch training sessions. Please ensure your machine has adequate cooling.\n")
+        "This will execute up to 240,000 PyTorch training sessions. Please ensure your machine has adequate cooling.\n")
 
     # The Evolutionary Loop
     algorithms.eaMuPlusLambda(

@@ -122,11 +122,11 @@ class PyTorchEvaluator:
 
 # --- Quick Test Block ---
 if __name__ == "__main__":
-    from dataset_manager import DatasetManager
+    from mod_3_dataset_manager import DatasetManager
 
     # Load just one dataset from your manager to test the injection
     manager = DatasetManager("Phase_A_Discovery_Datasets.csv",
-                             r"C:\Users\John Arellano\PycharmProjects\Applied_Comp_Intel_Project\Potential_Dataset_Repository")
+                             r"C:\Users\John Arellano\PycharmProjects\Applied_Comp_Intel_Project\openml_cc18_datasets")
     manager.load_all_to_ram()
 
     # Grab the first dataset ID (look at your console output to grab a valid ID like 3 or 31)
