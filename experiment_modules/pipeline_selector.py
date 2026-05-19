@@ -10,7 +10,7 @@ from tqdm import tqdm
 openml.config.apikey = "13d5e3978a2db3c8e91409ca7e75b7bd"
 
 # Output directory
-OUTPUT_DIR = "openml_cc18_datasets"
+OUTPUT_DIR = "../openml_cc18_datasets"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # 1. Get the OpenML-CC18 Benchmark Suite

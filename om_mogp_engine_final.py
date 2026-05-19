@@ -4,14 +4,13 @@ import operator
 import math
 import random
 import numpy as np
-import os
 import datetime
 from deap import algorithms, base, creator, tools, gp
 import warnings
 
 # Import your custom modules
-from pm_dataset_manager import DatasetManager
-from pm_fnn_landscape import PyTorchEvaluator
+from experiment_modules.pm_dataset_manager import DatasetManager
+from experiment_modules.pm_fnn_landscape import PyTorchEvaluator
 
 warnings.filterwarnings("ignore")
 
@@ -123,7 +122,7 @@ toolbox.decorate("mutate", gp.staticLimit(key=operator.attrgetter("height"), max
 # ==========================================
 def main():
     print("Loading Phase A Data to RAM...")
-    manager = DatasetManager("Phase_A_Discovery_Datasets.csv",
+    manager = DatasetManager("generated_files/Phase_A_Discovery_Datasets.csv",
                              r"C:\Users\John Arellano\PycharmProjects\Applied_Comp_Intel_Project\openml_cc18_datasets")
     manager.load_all_to_ram()
 

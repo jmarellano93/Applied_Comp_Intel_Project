@@ -271,7 +271,7 @@ class DatasetManager:
 # --- Quick Test Block ---
 if __name__ == "__main__":
     PHASE_A_CSV = "Phase_A_Discovery_Datasets.csv"
-    DATA_DIR = r"C:\Users\John Arellano\PycharmProjects\Applied_Comp_Intel_Project\openml_cc18_datasets"
+    DATA_DIR = r"/openml_cc18_datasets"
 
     manager = DatasetManager(
         metadata_csv_path=PHASE_A_CSV,

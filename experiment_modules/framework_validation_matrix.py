@@ -103,7 +103,7 @@ def apply_baseline_initialization(model, method, dataset, m_vals):
 def main():
     print("Loading Phase B Validation Data (51 Unseen Datasets)...")
     # Make sure this points to the new 51-dataset CSV you uploaded
-    manager = DatasetManager("Phase_B_Validation_Datasets.csv",
+    manager = DatasetManager("../generated_files/Phase_B_Validation_Datasets.csv",
                              r"C:\Users\John Arellano\PycharmProjects\Applied_Comp_Intel_Project\openml_cc18_datasets")
     manager.load_all_to_ram()
 

@@ -70,7 +70,7 @@ pset.addEphemeralConstant("rand101", lambda: random.uniform(-1.0, 1.0))
 # 3. MULTI-OBJECTIVE FITNESS SETUP (NSGA-II)
 # ==========================================
 # Objectives: 1. Maximize Accuracy, 2. Minimize Epochs, 3. Minimize Equation Bloat
-creator.create("FitnessMulti", base.Fitness, weights=(1.0, -1.0, -0.1))
+creator.create("FitnessMulti", base.Fitness, weights=(1.0, -1.0, -1.0))
 creator.create("Individual", gp.PrimitiveTree, fitness=creator.FitnessMulti)
 
 toolbox = base.Toolbox()
@@ -141,16 +141,16 @@ toolbox.decorate("mutate", gp.staticLimit(key=operator.attrgetter("height"), max
 # ==========================================
 def main():
     print("Loading Phase A Data to RAM...")
-    manager = DatasetManager("Phase_A_Discovery_Datasets.csv",
-                             r"C:\Users\John Arellano\PycharmProjects\Applied_Comp_Intel_Project\Potential_Dataset_Repository")
+    manager = DatasetManager("../generated_files/Phase_A_Discovery_Datasets.csv",
+                             r"C:\Users\John Arellano\PycharmProjects\Applied_Comp_Intel_Project\openml_cc18_datasets")
     manager.load_all_to_ram()
 
     # Inject the manager into the evaluation function
     toolbox.register("evaluate", evaluate_rule, manager=manager)
 
     # Downsized Methodology Constraints
-    POP_SIZE = 50  # Start small for Milestone 3 testing (Scale to 150 later)
-    NGEN = 5  # Start small for Milestone 3 testing (Scale to 20 later)
+    POP_SIZE = 150  # Start small for Milestone 3 testing (Scale to 150 later)
+    NGEN = 20  # Start small for Milestone 3 testing (Scale to 20 later)
 
     pop = toolbox.population(n=POP_SIZE)
     hof = tools.ParetoFront()  # Tracks the best multi-objective solutions
