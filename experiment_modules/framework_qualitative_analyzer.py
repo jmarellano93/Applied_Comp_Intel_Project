@@ -1,5 +1,4 @@
-# Module 9 General Function: Uses SymPy to extract partial derivatives and generate a 3D surface plot to prove the mathematical Asymptotic Verification of your winning rule.
-
+import os
 import sympy as sp
 import numpy as np
 import matplotlib.pyplot as plt
@@ -7,6 +6,11 @@ from mpl_toolkits.mplot3d import Axes3D
 
 
 def qualitative_analysis():
+    GEN_DIR = r"C:\Users\John Arellano\PycharmProjects\Applied_Comp_Intel_Project\generated_files"
+
+    # Ensure directory exists
+    os.makedirs(GEN_DIR, exist_ok=True)
+
     # 1. Define Symbolic Variables
     pc_eigen, target_entropy = sp.symbols('pc_eigen target_entropy')
 
@@ -47,8 +51,10 @@ def qualitative_analysis():
 
     fig.colorbar(surf, ax=ax, shrink=0.5, aspect=5, label='Variance Magnitude')
 
-    plt.savefig("asymptotic_surface.png", dpi=300)
-    print("\nAsymptotic Verification surface plot exported to 'asymptotic_surface.png'.")
+    # Save the 3D surface plot to the generated_files directory
+    plot_path = os.path.join(GEN_DIR, "asymptotic_surface.png")
+    plt.savefig(plot_path, dpi=300)
+    print(f"\nAsymptotic Verification surface plot exported to '{plot_path}'.")
 
 
 if __name__ == "__main__":

@@ -368,8 +368,16 @@ def main():
     ].reset_index(drop=True)
 
     # Save the final splits
-    phase_A_df.to_csv("Phase_A_Discovery_Datasets.csv", index=False)
-    phase_B_df.to_csv("Phase_B_Validation_Datasets.csv", index=False)
+
+    GEN_DIR = r"C:\Users\John Arellano\PycharmProjects\Applied_Comp_Intel_Project\generated_files"
+
+    # Ensure the directory exists
+    os.makedirs(GEN_DIR, exist_ok=True)
+
+    # Export to the new directory
+    phase_a_df.to_csv(os.path.join(GEN_DIR, "Phase_A_Discovery_Datasets.csv"), index=False)
+    phase_b_df.to_csv(os.path.join(GEN_DIR, "Phase_B_Validation_Datasets.csv"), index=False)
+    print(f"Data successfully exported to {GEN_DIR}")
 
     print("\n--- SCRIPT COMPLETE ---")
     print(f"Total loaded from: {SAVE_DIR}")

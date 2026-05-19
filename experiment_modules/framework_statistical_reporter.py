@@ -1,5 +1,6 @@
 # Module 8 General Function: Automatically converts the JSON results from Module 7 into publication-ready boxplots and a LaTeX table for your paper.
 
+import os
 import json
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -8,10 +9,17 @@ from scipy import stats
 import numpy as np
 
 
-def generate_artifacts(json_file="validation_results.json"):
+def generate_artifacts():
+    GEN_DIR = r"C:\Users\John Arellano\PycharmProjects\Applied_Comp_Intel_Project\generated_files"
+    json_file = os.path.join(GEN_DIR, "validation_results.json")
+
     print(f"Loading {json_file}...")
-    with open(json_file, 'r') as f:
-        results = json.load(f)
+    try:
+        with open(json_file, 'r') as f:
+            results = json.load(f)
+    except FileNotFoundError:
+        print(f"Error: Could not find {json_file}. Run Module 07 first.")
+        return
 
     # 1. LaTeX Table Generation
     print("\n--- GENERATING LATEX TABLE ---")
@@ -52,9 +60,10 @@ def generate_artifacts(json_file="validation_results.json"):
     plt.xticks(rotation=45)
     plt.tight_layout()
 
-    plt.savefig("baseline_comparison_boxplots.png", dpi=300)
-    print("\nVisual artifacts exported to 'baseline_comparison_boxplots.png'.")
-
+    # Save the plot directly into the generated_files directory
+    plot_path = os.path.join(GEN_DIR, "baseline_comparison_boxplots.png")
+    plt.savefig(plot_path, dpi=300)
+    print(f"\nVisual artifacts exported to '{plot_path}'.")
 
 if __name__ == "__main__":
     generate_artifacts()

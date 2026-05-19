@@ -5,6 +5,7 @@ import scipy.stats as stats
 import torch
 import math
 import json
+import os
 import warnings
 from sklearn.cluster import KMeans
 from pm_dataset_manager import DatasetManager
@@ -101,15 +102,15 @@ def apply_baseline_initialization(model, method, dataset, m_vals):
 
 
 def main():
+    GEN_DIR = r"C:\Users\John Arellano\PycharmProjects\Applied_Comp_Intel_Project\generated_files"
+    DATA_DIR = r"C:\Users\John Arellano\PycharmProjects\Applied_Comp_Intel_Project\openml_cc18_datasets"
+
     print("Loading Phase B Validation Data (51 Unseen Datasets)...")
-    # Make sure this points to the new 51-dataset CSV you uploaded
-    manager = DatasetManager("../generated_files/Phase_B_Validation_Datasets.csv",
-                             r"C:\Users\John Arellano\PycharmProjects\Applied_Comp_Intel_Project\openml_cc18_datasets")
+    # Point the DatasetManager to the generated_files directory for the CSV
+    manager = DatasetManager(os.path.join(GEN_DIR, "Phase_B_Validation_Datasets.csv"), DATA_DIR)
     manager.load_all_to_ram()
 
     baselines = ['Xavier_Glorot', 'He_Kaiming', 'LeCun', 'Orthogonal', 'LSUV', 'FAVI', 'Laor']
-
-    # Store results for statistical comparison
     results = {method: [] for method in baselines}
     results['GP_Rule'] = []
 
@@ -118,17 +119,14 @@ def main():
     for idx, did in enumerate(manager.dataset_cache.keys()):
         dataset, meta_features = manager.get_dataset(did)
         m_vals = meta_features.numpy()
-
         pc_eigen = m_vals[3]
         target_entropy = m_vals[4]
 
-        # 1. Evaluate the GP Discovered Rule
         sigma_squared = rank_1_rule(pc_eigen, target_entropy)
         evaluator_gp = PyTorchEvaluator(dataset, sigma_squared=sigma_squared, max_epochs=30)
         acc_gp, _ = evaluator_gp.evaluate_fitness()
         results['GP_Rule'].append(acc_gp)
 
-        # 2. Evaluate All 7 Baselines
         for method in baselines:
             evaluator_base = PyTorchEvaluator(dataset, sigma_squared=1e-5, max_epochs=30)
             apply_baseline_initialization(evaluator_base.model, method, dataset, m_vals)
@@ -138,40 +136,14 @@ def main():
         print(
             f"[{idx + 1}/{len(manager.dataset_cache)}] Dataset {did} Processed -> GP: {acc_gp * 100:.1f}% | Kaiming: {results['He_Kaiming'][-1] * 100:.1f}% | Laor: {results['Laor'][-1] * 100:.1f}%")
 
-    # --- STATISTICAL ANALYSIS BLOCK ---
-    print("\n" + "=" * 65)
-    print(" WILCOXON SIGNED-RANK TEST RESULTS (GP Rule vs Baselines)")
-    print("=" * 65)
-    print(f"{'Initialization Method':<20} | {'Mean Acc':<10} | {'W-Stat':<8} | {'P-Value':<8} | {'Significance'}")
-    print("-" * 65)
-
-    gp_scores = results['GP_Rule']
-    mean_gp = np.mean(gp_scores) * 100
-
-    print(f"{'★ Symbolic GP Rule':<20} | {mean_gp:>6.2f}%   | {'-':<8} | {'-':<8} | Baseline")
-    print("-" * 65)
-
-    for method in baselines:
-        base_scores = results[method]
-        mean_base = np.mean(base_scores) * 100
-
-        # Calculate Wilcoxon test (Alternative = 'greater' implies we test if GP > Baseline)
-        try:
-            stat, p_value = stats.wilcoxon(gp_scores, base_scores, alternative='greater')
-        except ValueError:
-            # Catches edge cases where all differences are exactly zero
-            stat, p_value = 0, 1.0
-
-        sig_marker = "YES (p < 0.05)" if p_value < 0.05 else "No"
-
-        print(f"{method:<20} | {mean_base:>6.2f}%   | {stat:<8.1f} | {p_value:<8.4f} | {sig_marker}")
-
-    print("=" * 65)
+    # ... [Keep your console printing for the Wilcoxon stats the same] ...
 
     # --- JSON EXPORT BLOCK FOR MODULE 8 ---
-    with open("validation_results.json", "w") as f:
+    # Route the JSON payload to the generated_files directory
+    json_path = os.path.join(GEN_DIR, "validation_results.json")
+    with open(json_path, "w") as f:
         json.dump(results, f)
-    print("\nRaw results successfully exported to 'validation_results.json' for qualitative analysis.")
+    print(f"\nRaw results successfully exported to '{json_path}' for qualitative analysis.")
 
 
 if __name__ == "__main__":

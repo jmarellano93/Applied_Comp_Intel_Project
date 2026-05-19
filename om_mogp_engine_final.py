@@ -7,6 +7,7 @@ import numpy as np
 import datetime
 from deap import algorithms, base, creator, tools, gp
 import warnings
+import os
 
 # Import your custom modules
 from experiment_modules.pm_dataset_manager import DatasetManager
@@ -121,9 +122,15 @@ toolbox.decorate("mutate", gp.staticLimit(key=operator.attrgetter("height"), max
 # 5. MAIN EXECUTION & AUTOMATED EXPORT
 # ==========================================
 def main():
+    GEN_DIR = r"C:\Users\John Arellano\PycharmProjects\Applied_Comp_Intel_Project\generated_files"
+    DATA_DIR = r"C:\Users\John Arellano\PycharmProjects\Applied_Comp_Intel_Project\openml_cc18_datasets"
+
+    # Ensure directory exists just in case
+    os.makedirs(GEN_DIR, exist_ok=True)
+
     print("Loading Phase A Data to RAM...")
-    manager = DatasetManager("generated_files/Phase_A_Discovery_Datasets.csv",
-                             r"C:\Users\John Arellano\PycharmProjects\Applied_Comp_Intel_Project\openml_cc18_datasets")
+    # Point the DatasetManager to the generated_files directory for the CSV
+    manager = DatasetManager(os.path.join(GEN_DIR, "Phase_A_Discovery_Datasets.csv"), DATA_DIR)
     manager.load_all_to_ram()
 
     toolbox.register("evaluate", evaluate_rule, manager=manager)
@@ -133,7 +140,7 @@ def main():
     NGEN = 40
 
     pop = toolbox.population(n=POP_SIZE)
-    hof = tools.ParetoFront()  # Will store the non-dominated rules
+    hof = tools.ParetoFront()
 
     stats = tools.Statistics(lambda ind: ind.fitness.values)
     stats.register("avg", np.mean, axis=0)
@@ -144,19 +151,14 @@ def main():
     print(
         "This will execute up to 240,000 PyTorch training sessions. Please ensure your machine has adequate cooling.\n")
 
-    # The Evolutionary Loop
-    algorithms.eaMuPlusLambda(
-        pop, toolbox,
-        mu=POP_SIZE, lambda_=POP_SIZE,
-        cxpb=0.6, mutpb=0.3,
-        ngen=NGEN, stats=stats, halloffame=hof, verbose=True
-    )
+    algorithms.eaMuPlusLambda(pop, toolbox, mu=POP_SIZE, lambda_=POP_SIZE, cxpb=0.6, mutpb=0.3, ngen=NGEN, stats=stats,
+                              halloffame=hof, verbose=True)
 
     print("\n--- EVOLUTION COMPLETE ---")
 
-    # Write the results safely to a text file to prevent data loss
+    # Route the output text file to the generated_files directory
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_filename = f"Final_Discovered_Rules_{timestamp}.txt"
+    output_filename = os.path.join(GEN_DIR, f"Final_Discovered_Rules_{timestamp}.txt")
 
     with open(output_filename, "w") as f:
         f.write("APPLIED COMPUTATIONAL INTELLIGENCE: MILESTONE 4 RESULTS\n")
@@ -165,7 +167,6 @@ def main():
         f.write("=" * 60 + "\n\n")
         f.write("Top 10 Discovered Rules-of-Thumb (Pareto Optimal):\n\n")
 
-        # Save up to the top 10 rules to the file
         for i, ind in enumerate(hof[:10]):
             rank_text = f"Rank {i + 1}:\n"
             eq_text = f"Equation: {str(ind)}\n"
