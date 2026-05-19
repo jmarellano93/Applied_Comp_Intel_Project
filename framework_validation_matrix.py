@@ -1,11 +1,14 @@
+# Module 7 General Function: Executes the out-of-distribution validation matrix against the 7 baseline heuristics.
+
 import numpy as np
 import scipy.stats as stats
 import torch
 import math
+import json
 import warnings
 from sklearn.cluster import KMeans
-from mod_3_dataset_manager import DatasetManager
-from mod_4_fnn_problem_model import PyTorchEvaluator
+from pm_dataset_manager import DatasetManager
+from pm_fnn_landscape import PyTorchEvaluator
 
 warnings.filterwarnings("ignore")
 
@@ -15,6 +18,7 @@ def rank_1_rule(pc_eigen, target_entropy):
     The translated Rank 1 equation from the MOGP engine:
     neg(mul(-0.07458949361120437, protected_div(pc_eigen, target_entropy)))
     """
+    # Protect division just like the GP engine did
     denominator = target_entropy if abs(target_entropy) > 1e-5 else 1.0
     return 0.07458949361120437 * (pc_eigen / denominator)
 
@@ -90,7 +94,7 @@ def apply_baseline_initialization(model, method, dataset, m_vals):
                 if var > 1e-6:
                     layer.weight.data /= torch.sqrt(var)
 
-        # Ensure all biases are zeroed out across all methods to isolate weight impacts
+        # METHODOLOGY FIX: Ensure all biases are zeroed out across all methods to isolate weight impacts
         for layer in [model.layer1, model.layer2, model.output_layer]:
             if layer.bias is not None:
                 torch.nn.init.zeros_(layer.bias)
@@ -163,6 +167,11 @@ def main():
         print(f"{method:<20} | {mean_base:>6.2f}%   | {stat:<8.1f} | {p_value:<8.4f} | {sig_marker}")
 
     print("=" * 65)
+
+    # --- JSON EXPORT BLOCK FOR MODULE 8 ---
+    with open("validation_results.json", "w") as f:
+        json.dump(results, f)
+    print("\nRaw results successfully exported to 'validation_results.json' for qualitative analysis.")
 
 
 if __name__ == "__main__":

@@ -1,3 +1,5 @@
+# Module 3 General Function: Ingests arrays, performs ordinal scaling, and manages the in-RAM tensor cache.
+
 import os
 import glob
 import openml

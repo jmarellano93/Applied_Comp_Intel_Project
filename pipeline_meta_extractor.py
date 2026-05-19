@@ -1,3 +1,5 @@
+# Module 2 General Function: Extracts the "Elite 8" meta-features and applies the spatial coverage partitioning.
+
 import os
 import glob
 import openml
