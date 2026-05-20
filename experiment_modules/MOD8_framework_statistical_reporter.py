@@ -10,8 +10,8 @@ import numpy as np
 
 
 def generate_artifacts():
-    GEN_DIR = r"C:\Users\John Arellano\PycharmProjects\Applied_Comp_Intel_Project\generated_files"
-    json_file = os.path.join(GEN_DIR, "validation_results.json")
+    GEN_DIR = r"/old_shit"
+    json_file = os.path.join(GEN_DIR, "validation_results_shallow.json")
 
     print(f"Loading {json_file}...")
     try:
@@ -60,7 +60,7 @@ def generate_artifacts():
     plt.xticks(rotation=45)
     plt.tight_layout()
 
-    # Save the plot directly into the generated_files directory
+    # Save the plot directly into the old_shit directory
     plot_path = os.path.join(GEN_DIR, "baseline_comparison_boxplots.png")
     plt.savefig(plot_path, dpi=300)
     print(f"\nVisual artifacts exported to '{plot_path}'.")

@@ -6,7 +6,7 @@ from mpl_toolkits.mplot3d import Axes3D
 
 
 def qualitative_analysis():
-    GEN_DIR = r"C:\Users\John Arellano\PycharmProjects\Applied_Comp_Intel_Project\generated_files"
+    GEN_DIR = r"/old_shit"
 
     # Ensure directory exists
     os.makedirs(GEN_DIR, exist_ok=True)
@@ -51,7 +51,7 @@ def qualitative_analysis():
 
     fig.colorbar(surf, ax=ax, shrink=0.5, aspect=5, label='Variance Magnitude')
 
-    # Save the 3D surface plot to the generated_files directory
+    # Save the 3D surface plot to the old_shit directory
     plot_path = os.path.join(GEN_DIR, "asymptotic_surface.png")
     plt.savefig(plot_path, dpi=300)
     print(f"\nAsymptotic Verification surface plot exported to '{plot_path}'.")
