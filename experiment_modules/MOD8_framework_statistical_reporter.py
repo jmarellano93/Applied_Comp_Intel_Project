@@ -1,69 +1,180 @@
-# Module 8 General Function: Automatically converts the JSON results from Module 7 into publication-ready boxplots and a LaTeX table for your paper.
+"""
+Module 8: Framework Statistical Reporter
+
+Dynamically ingests validation JSON artifacts from the /reports namespace.
+Generates multiobjective LaTeX tables (saved to /reports) and visual
+distributions (saved to /visualizations).
+"""
 
 import os
 import json
+import warnings
+from pathlib import Path
+from typing import Dict, Any, List, Tuple
+
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import stats
-import numpy as np
+from pydantic import BaseModel, Field
 
+warnings.filterwarnings("ignore")
 
-def generate_artifacts():
-    GEN_DIR = r"/old_shit"
-    json_file = os.path.join(GEN_DIR, "validation_results_shallow.json")
+# =============================================================================
+# 1. DYNAMIC PATHING & CONFIGURATION
+# =============================================================================
 
-    print(f"Loading {json_file}...")
-    try:
-        with open(json_file, 'r') as f:
-            results = json.load(f)
-    except FileNotFoundError:
-        print(f"Error: Could not find {json_file}. Run Module 07 first.")
-        return
+class StatisticalConfig(BaseModel):
+    alpha_level: float = Field(default=0.05, description="Significance threshold for p-values.")
 
-    # 1. LaTeX Table Generation
-    print("\n--- GENERATING LATEX TABLE ---")
-    latex_str = "\\begin{table}[h]\n\\centering\n\\begin{tabular}{|l|c|c|c|c|}\n\\hline\n"
-    latex_str += "\\textbf{Method} & \\textbf{Mean Acc (\\%)} & \\textbf{W-Stat} & \\textbf{p-value} & \\textbf{Sig. ($p<0.05$)} \\\\\n\\hline\n"
+    @property
+    def base_dir(self) -> Path:
+        return Path(__file__).resolve().parent / "generated_files" / "experimental_results_analysis_visualizations"
 
-    gp_scores = results['GP_Rule']
-    latex_str += f"\\textbf{{Symbolic GP Rule}} & \\textbf{{{np.mean(gp_scores) * 100:.2f}}} & - & - & - \\\\\n\\hline\n"
+    @property
+    def reports_dir(self) -> Path:
+        d = self.base_dir / "reports"
+        d.mkdir(parents=True, exist_ok=True)
+        return d
 
-    methods = [m for m in results.keys() if m != 'GP_Rule']
-    plot_data = []
+    @property
+    def vis_dir(self) -> Path:
+        d = self.base_dir / "visualizations"
+        d.mkdir(parents=True, exist_ok=True)
+        return d
 
-    for m in methods:
-        base_scores = results[m]
-        mean_acc = np.mean(base_scores) * 100
+# =============================================================================
+# 2. STATISTICAL ENGINE & ARTIFACT GENERATION
+# =============================================================================
+
+class ArtifactGenerator:
+    def __init__(self, config: StatisticalConfig):
+        self.cfg = config
+        sns.set_theme(style="whitegrid", context="paper", font_scale=1.2)
+
+    def safe_wilcoxon(self, dist_a: List[float], dist_b: List[float], alternative: str = 'two-sided') -> Tuple[float, float]:
+        if np.allclose(dist_a, dist_b, rtol=1e-7):
+            return 0.0, 1.0
         try:
-            stat, p_val = stats.wilcoxon(gp_scores, base_scores, alternative='greater')
+            stat, p_val = stats.wilcoxon(dist_a, dist_b, alternative=alternative)
+            return float(stat), float(p_val)
         except ValueError:
-            stat, p_val = 0, 1.0
+            return 0.0, 1.0
 
-        sig = "\\textbf{Yes}" if p_val < 0.05 else "No"
-        latex_str += f"{m.replace('_', '\\_')} & {mean_acc:.2f} & {stat:.1f} & {p_val:.4f} & {sig} \\\\\n"
+    def generate_latex_table(self, results: Dict[str, Any], topology: str, activation: str) -> None:
+        distributions = results.get("Raw_Distributions", {})
+        if not distributions or "GP_Rule_1" not in distributions:
+            return
 
-        # Prepare data for plotting
-        for i in range(len(gp_scores)):
-            plot_data.append({'Dataset_ID': i, 'Method': 'GP Rule', 'Accuracy': gp_scores[i] * 100})
-            plot_data.append({'Dataset_ID': i, 'Method': m, 'Accuracy': base_scores[i] * 100})
+        gp_acc = distributions["GP_Rule_1"]["acc"]
+        gp_loss = distributions["GP_Rule_1"]["loss"]
+        baselines = [k for k in distributions.keys() if "GP_Rule" not in k]
 
-    latex_str += "\\hline\n\\end{tabular}\n\\caption{Wilcoxon Signed-Rank Test Results across 51 Datasets}\n\\label{tab:wilcoxon_results}\n\\end{table}"
-    print(latex_str)
+        latex_str = [
+            "\\begin{table}[htpb]",
+            "\\centering",
+            "\\caption{Multiobjective Wilcoxon Signed-Rank Test Results: " + f"{topology.capitalize()} ({activation.capitalize()}) " + "}",
+            "\\resizebox{\\textwidth}{!}{",
+            "\\begin{tabular}{l | c c c | c c c}",
+            "\\hline",
+            "\\textbf{Method} & \\textbf{Mean Acc (\\%)} & \\textbf{W-Stat} & \\textbf{$p$-value} & \\textbf{Mean Loss} & \\textbf{W-Stat} & \\textbf{$p$-value} \\\\",
+            "\\hline",
+            f"\\textbf{{Symbolic GP Rule}} & \\textbf{{{np.mean(gp_acc)*100:.2f}}} & - & - & \\textbf{{{np.mean(gp_loss):.4f}}} & - & - \\\\",
+            "\\hline"
+        ]
 
-    # 2. Boxplot Generation
-    df = pd.DataFrame(plot_data)
-    plt.figure(figsize=(14, 8))
-    sns.boxplot(x='Method', y='Accuracy', data=df, palette='Set2')
-    plt.title("Generalization Performance: Symbolic GP Rule vs Baseline Initialization Heuristics (51 Datasets)")
-    plt.ylabel("Balanced Accuracy (%)")
-    plt.xticks(rotation=45)
-    plt.tight_layout()
+        for base in baselines:
+            base_acc = distributions[base]["acc"]
+            base_loss = distributions[base]["loss"]
 
-    # Save the plot directly into the old_shit directory
-    plot_path = os.path.join(GEN_DIR, "baseline_comparison_boxplots.png")
-    plt.savefig(plot_path, dpi=300)
-    print(f"\nVisual artifacts exported to '{plot_path}'.")
+            acc_stat, acc_pval = self.safe_wilcoxon(gp_acc, base_acc, alternative='greater')
+            acc_sig = "\\textbf{Yes}" if acc_pval < self.cfg.alpha_level else "No"
+
+            loss_stat, loss_pval = self.safe_wilcoxon(gp_loss, base_loss, alternative='less')
+            loss_sig = "\\textbf{Yes}" if loss_pval < self.cfg.alpha_level else "No"
+
+            latex_str.append(f"{base.replace('_', '\\_')} & {np.mean(base_acc)*100:.2f} & {acc_stat:.1f} & {acc_pval:.4f} ({acc_sig}) & {np.mean(base_loss):.4f} & {loss_stat:.1f} & {loss_pval:.4f} ({loss_sig}) \\\\")
+
+        latex_str.extend(["\\hline", "\\end{tabular}", "}", "\\label{tab:multiobjective_results_" + activation + "}", "\\end{table}\n"])
+
+        table_path = self.cfg.reports_dir / f"Latex_Table_{topology}_{activation}.tex"
+        with open(table_path, "w") as f:
+            f.write("\n".join(latex_str))
+
+    def generate_visual_distributions(self, results: Dict[str, Any], topology: str, activation: str) -> None:
+        distributions = results.get("Raw_Distributions", {})
+        if not distributions:
+            return
+
+        records = []
+        for method, metrics in distributions.items():
+            label = "Symbolic Rule" if "GP_Rule" in method else method.replace("_", " ")
+            if "GP_Rule" in method and method != "GP_Rule_1":
+                continue
+
+            for i in range(len(metrics["acc"])):
+                records.append({"Method": label, "Accuracy": metrics["acc"][i] * 100, "Epochs": metrics["epochs"][i], "Loss": metrics["loss"][i]})
+
+        df = pd.DataFrame(records)
+        base_filename = f"{topology}_{activation}"
+
+        plt.figure(figsize=(12, 6))
+        sns.boxplot(data=df, x="Method", y="Accuracy", palette="viridis")
+        plt.title(f"Generalization Accuracy Distributions: {activation.upper()}")
+        plt.ylabel("Validation Accuracy (%)")
+        plt.xticks(rotation=45, ha='right')
+        plt.tight_layout()
+        plt.savefig(self.cfg.vis_dir / f"Boxplot_Accuracy_{base_filename}.png", dpi=300)
+        plt.close()
+
+        plt.figure(figsize=(12, 6))
+        sns.violinplot(data=df, x="Method", y="Epochs", palette="magma", cut=0)
+        plt.title(f"Convergence Efficiency (Epochs to Target Threshold): {activation.upper()}")
+        plt.ylabel("Epochs")
+        plt.xticks(rotation=45, ha='right')
+        plt.tight_layout()
+        plt.savefig(self.cfg.vis_dir / f"Violinplot_Epochs_{base_filename}.png", dpi=300)
+        plt.close()
+
+        mean_df = df.groupby("Method").mean().reset_index()
+        plt.figure(figsize=(10, 8))
+        sns.scatterplot(data=mean_df, x="Epochs", y="Accuracy", hue="Method", s=200, palette="tab10")
+        for _, row in mean_df.iterrows():
+            plt.text(row['Epochs'] + 0.1, row['Accuracy'], row['Method'], fontsize=9)
+
+        plt.title(f"Pareto Efficiency Landscape (Top-Left is Optimal): {activation.upper()}")
+        plt.xlabel("Mean Epochs to Convergence (Lower is Better)")
+        plt.ylabel("Mean Validation Accuracy % (Higher is Better)")
+        plt.grid(True, linestyle='--', alpha=0.7)
+        plt.tight_layout()
+        plt.savefig(self.cfg.vis_dir / f"Pareto_Scatter_{base_filename}.png", dpi=300)
+        plt.close()
+
+    def process_all_artifacts(self) -> None:
+        if not self.cfg.reports_dir.exists():
+            print("Reports directory not found.")
+            return
+
+        json_files = list(self.cfg.reports_dir.glob("statistical_validation_*.json"))
+        if not json_files:
+            print(f"No JSON artifacts found in {self.cfg.reports_dir}. Run Module 7 first.")
+            return
+
+        print(f"--- INITIALIZING MODULE 8: STATISTICAL REPORTER ---")
+        for file_path in json_files:
+            with open(file_path, 'r') as f:
+                data = json.load(f)
+
+            topology = data.get("Metadata", {}).get("Topology", "unknown")
+            activation = data.get("Metadata", {}).get("Activation", "unknown")
+
+            self.generate_latex_table(data, topology, activation)
+            self.generate_visual_distributions(data, topology, activation)
+            print(f"Processed artifacts for: {topology} | {activation}")
+
+        print(f"\n--- ALL ARTIFACTS EXPORTED TO partitioned namespaces. ---")
 
 if __name__ == "__main__":
-    generate_artifacts()
+    generator = ArtifactGenerator(StatisticalConfig())
+    generator.process_all_artifacts()
