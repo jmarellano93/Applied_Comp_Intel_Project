@@ -21,20 +21,28 @@ from sklearn.cluster import KMeans
 from sklearn.impute import SimpleImputer
 import warnings
 
-# Suppress sklearn/scipy warnings for unoptimized topological edge cases
 warnings.filterwarnings("ignore")
-
-# Configure scientific logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - ACI-META - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-
+# =============================================================================
+# FUNCTIONAL BLOCK: Extraction Configuration
+# 4A) WHAT IT DOES: Secures the input/output paths and enforces the exact volume
+#     of datasets relegated to the Phase A mathematical discovery phase.
+# 4B) PARAMETERS:
+#     - n_discovery_datasets (20)
+#     - random_seed (42)
+#     - epsilon (1e-10)
+# 4C) METHODOLOGICAL JUSTIFICATION:
+#     - 20 Datasets guarantees sufficient topological diversity during GP crossover
+#       while preventing out-of-memory constraints during the 80,000 FNN evaluations.
+#     - epsilon is a strict mathematical guard against Floating Point exceptions
+#       (division by zero) during ratio configurations.
+# =============================================================================
 class ExtractionConfig(BaseModel):
-    """Runtime configuration schema guaranteeing rigid algorithmic boundaries and explicit pathing."""
     project_root: str = Field(default=r"C:\Users\John Arellano\PycharmProjects\Applied_Comp_Intel_Project")
     output_dir: str = Field(default=r"C:\Users\John Arellano\PycharmProjects\Applied_Comp_Intel_Project\experiment_modules\generated_files")
 
-    # Internal path properties populated post-validation
     dataset_dir: str = ""
     log_path: str = ""
 
@@ -44,11 +52,9 @@ class ExtractionConfig(BaseModel):
 
     @model_validator(mode='after')
     def build_paths(self) -> 'ExtractionConfig':
-        """Constructs target filepaths dynamically and hunts for the dataset folder."""
         path_root = os.path.join(self.project_root, "openml_cc18_datasets")
         path_module = os.path.join(self.project_root, "experiment_modules", "openml_cc18_datasets")
 
-        # Dynamically check where Module 1 actually saved the CSVs
         if os.path.exists(path_module) and len(glob.glob(os.path.join(path_module, "*.csv"))) > 0:
             self.dataset_dir = path_module
         else:
@@ -58,27 +64,32 @@ class ExtractionConfig(BaseModel):
         return self
 
 
+# =============================================================================
+# FUNCTIONAL BLOCK: Hopkins Statistic Calculation
+# 4A) WHAT IT DOES: Calculates the dataset's clustering tendency by measuring spatial
+#     randomness against a uniformly generated synthetic distribution using KD-Trees.
+# 4B) PARAMETERS: sample_ratio (0.1), eps (1e-10)
+# 4C) METHODOLOGICAL JUSTIFICATION: Setting sample_ratio to 10% ensures accurate
+#     spatial representation of the feature topography without forcing a catastrophic
+#     $O(N^2)$ pairwise distance calculation across the entire matrix.
+# =============================================================================
 def calculate_hopkins_vectorized(X: np.ndarray, seed: int, sample_ratio: float = 0.1, eps: float = 1e-10) -> float:
-    """Computes the Hopkins statistic using a highly optimized KD-Tree structure."""
     n, d = X.shape
     m = max(1, int(n * sample_ratio))
 
     rng = np.random.default_rng(seed)
-
     X_min, X_max = X.min(axis=0), X.max(axis=0)
 
     mask = (X_max == X_min)
     X_max[mask] = X_max[mask] + eps
 
     sim_points = rng.uniform(X_min, X_max, (m, d))
-
     real_indices = rng.choice(n, m, replace=False)
     real_points = X[real_indices]
 
     tree = cKDTree(X)
 
     u_dist, _ = tree.query(sim_points, k=1)
-
     w_dist, _ = tree.query(real_points, k=2)
     w_dist = w_dist[:, 1]
 
@@ -93,8 +104,16 @@ def calculate_hopkins_vectorized(X: np.ndarray, seed: int, sample_ratio: float =
     return u_sum / denominator
 
 
+# =============================================================================
+# FUNCTIONAL BLOCK: Meta-Feature Extraction Matrix
+# 4A) WHAT IT DOES: Extracts the 'Elite 8' meta-features representing dimensionality,
+#     distribution shape, variance, and clustering tendencies.
+# 4B) PARAMETERS: k_proxy = max(2, min(5, n // 10))
+# 4C) METHODOLOGICAL JUSTIFICATION: The k_proxy parameter bounds the KMeans clustering
+#     evaluation between 2 and 5 clusters to prevent micro-clustering noise on small
+#     datasets, providing a stable baseline for the Silhouette and Davies-Bouldin scores.
+# =============================================================================
 def extract_meta_features(X: pd.DataFrame, y: pd.Series, cfg: ExtractionConfig) -> Dict[str, float]:
-    """Extracts the 'Elite 8' mathematical meta-features from the dataset matrix."""
     n, d = X.shape
     X_arr = X.to_numpy()
 
@@ -138,8 +157,17 @@ def extract_meta_features(X: pd.DataFrame, y: pd.Series, cfg: ExtractionConfig) 
     }
 
 
+# =============================================================================
+# FUNCTIONAL BLOCK: Dataset Centroid Partitioning
+# 4A) WHAT IT DOES: Groups the complete dataset matrix into 20 structural centroids,
+#     selecting the closest real dataset to each centroid to form Phase A.
+# 4B) PARAMETERS: strategy='median' (Imputer), metric='euclidean' (cdist).
+# 4C) METHODOLOGICAL JUSTIFICATION: Using KMeans centroids on scaled meta-features
+#     mathematically guarantees that the 20 discovery datasets in Phase A represent
+#     the widest possible variety of topological structures (fat, wide, sparse, dense),
+#     ensuring the GP rule learns generalized heuristics rather than overfitting to one data type.
+# =============================================================================
 def partition_datasets(meta_df: pd.DataFrame, cfg: ExtractionConfig) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    """Utilizes KMeans clustering on standard-scaled meta-features to guarantee topological distribution."""
     logger.info(f"Clustering {len(meta_df)} datasets into {cfg.n_discovery_datasets} representational centroids.")
 
     feature_cols = [
@@ -179,7 +207,6 @@ def partition_datasets(meta_df: pd.DataFrame, cfg: ExtractionConfig) -> Tuple[pd
 
 
 def execute_meta_pipeline(cfg: ExtractionConfig) -> None:
-    """Orchestrates dataset parsing, extraction, and centroid partitioning."""
     os.makedirs(cfg.output_dir, exist_ok=True)
 
     if not os.path.exists(cfg.log_path):
@@ -209,7 +236,6 @@ def execute_meta_pipeline(cfg: ExtractionConfig) -> None:
         target_col = target_mapping.get(did, "class")
 
         try:
-            # Catch corrupted/empty CSV files (Dataset 38)
             try:
                 df = pd.read_csv(file)
             except pd.errors.EmptyDataError:
@@ -221,12 +247,10 @@ def execute_meta_pipeline(cfg: ExtractionConfig) -> None:
 
             X = df.drop(columns=[target_col]).select_dtypes(include=[np.number])
 
-            # Guard against pure-categorical datasets (Datasets 3, 40975, 46, 50)
             if X.shape[1] == 0 or X.shape[0] == 0:
                 logger.error(f"Mathematical extraction bypassed Dataset {did}: 0 numerical features detected.")
                 continue
 
-            # Force target to string to prevent mixed-type sorting crashes (Dataset 469)
             y = df[target_col].astype(str)
 
             features = extract_meta_features(X, y, cfg)

@@ -2,22 +2,8 @@
 Module 4: Problem Model (PM) - FNN Landscape Evaluator.
 
 Defines the core Neural Network topologies and inner-loop fitness evaluators.
-
-Public surface:
-    * Topology factories: ``PhaseA_Shallow_FNN``, ``PhaseB_DeepNarrow_FNN``,
-      ``PhaseB_Funnel_FNN`` (unchanged).
-    * Legacy evaluator: ``PyTorchEvaluator`` (unchanged — preserves the
-      MOD5 prototype's regression baseline).
-    * New evaluator: ``FNNTrainer`` (stateful, pool-friendly, ~3–5x faster
-      on CPU). Used by MOD6 for production runs.
-
-Mathematical Notes:
-    * Weight init follows the variance discovered by the outer GP rule:
-      W_ij ~ N(0, sqrt(sigma_squared)). Bias = 0.
-    * Optimizer: Adam(lr=5e-3) with gradient clipping at L2-norm 1.0
-      (Pascanu et al., 2013) for exploding-gradient protection.
-    * Validation metric: macro-averaged balanced accuracy
-      BA = mean_c TP_c / N_c   (only over classes with N_c > 0).
+Utilizes object-oriented PyTorch graphs to map discovered initialization
+variances to validation accuracies across diverse dataset structures.
 """
 
 from __future__ import annotations
@@ -35,30 +21,21 @@ warnings.filterwarnings("ignore")
 
 
 # =============================================================================
-# CUSTOM ACTIVATION REPRESENTATIVES
+# FUNCTIONAL BLOCK: Custom Activation Representatives
+# 4A) WHAT IT DOES: Maps string tokens to PyTorch native activation modules,
+#     including a custom Sine activation for periodic feature mappings.
+# 4B) PARAMETERS: activation_name (e.g., "linear", "rectification", "smooth").
+# 4C) METHODOLOGICAL JUSTIFICATION: Strict boundary mapping prevents the outer
+#     Genetic Algorithm from proposing invalid string tokens that would crash
+#     the PyTorch execution graph. GELU ("smooth") is used as the fallback
+#     standard due to its non-zero gradient properties for negative inputs.
 # =============================================================================
-
 class SineActivation(nn.Module):
-    """Trigonometric mapping for periodic spatial features.
-
-    Mathematical Notes:
-        f(x) = sin(x), period 2*pi, Lipschitz constant 1.
-    """
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:  # noqa: D401
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         return torch.sin(x)
 
 
 def get_activation(activation_name: str) -> nn.Module:
-    """Maps activation name to its torch.nn module.
-
-    Args:
-        activation_name: One of the 6 canonical names. Unknown names fall
-            back to GELU to preserve the legacy contract.
-
-    Returns:
-        A fresh ``nn.Module`` activation instance.
-    """
     activations: Dict[str, nn.Module] = {
         "linear": nn.Identity(),
         "rectification": nn.ReLU(),
@@ -71,12 +48,16 @@ def get_activation(activation_name: str) -> nn.Module:
 
 
 # =============================================================================
-# TOPOLOGY DEFINITIONS  (unchanged from original MOD4)
+# FUNCTIONAL BLOCK: Topology Definitions & Factory
+# 4A) WHAT IT DOES: Defines the FNN architectures (Shallow, Deep Narrow, Funnel)
+#     and provides a factory pattern to instantiate them based on arguments.
+# 4B) PARAMETERS: input_dim (dataset features), num_classes (target categories).
+# 4C) METHODOLOGICAL JUSTIFICATION: Hardcoding network architectures (e.g.,
+#     exactly 2 layers of 64 neurons for Phase A) ensures that the initialization
+#     variance is the *only* independent variable affecting the convergence
+#     trajectory, providing strict experimental control for the heuristic evaluation.
 # =============================================================================
-
 class PhaseA_Shallow_FNN(nn.Module):
-    """Discovery Topology: 2 Hidden Layers, 64 Neurons."""
-
     def __init__(self, input_dim: int, num_classes: int, activation_name: str = "smooth"):
         super().__init__()
         act = get_activation(activation_name)
@@ -91,8 +72,6 @@ class PhaseA_Shallow_FNN(nn.Module):
 
 
 class PhaseB_DeepNarrow_FNN(nn.Module):
-    """Stress Test Topology: 8 Hidden Layers, 32 Neurons."""
-
     def __init__(self, input_dim: int, num_classes: int, activation_name: str = "smooth"):
         super().__init__()
         act = get_activation(activation_name)
@@ -107,8 +86,6 @@ class PhaseB_DeepNarrow_FNN(nn.Module):
 
 
 class PhaseB_Funnel_FNN(nn.Module):
-    """Compression Topology: 256 → 128 → 64 → 32 → C."""
-
     def __init__(self, input_dim: int, num_classes: int, activation_name: str = "smooth"):
         super().__init__()
         act = get_activation(activation_name)
@@ -127,17 +104,6 @@ class PhaseB_Funnel_FNN(nn.Module):
 def _build_fnn_model(
     input_dim: int, num_classes: int, activation_name: str, topology: str,
 ) -> nn.Module:
-    """Topology factory honoring the Open/Closed Principle.
-
-    Args:
-        input_dim: Number of input features.
-        num_classes: Output cardinality for softmax classification.
-        activation_name: One of the 6 canonical activation tokens.
-        topology: 'shallow' (Phase A) | 'deep_narrow' | 'funnel'.
-
-    Returns:
-        Uninitialized (default-init) FNN module ready for variance injection.
-    """
     if topology == "deep_narrow":
         return PhaseB_DeepNarrow_FNN(input_dim, num_classes, activation_name)
     if topology == "funnel":
@@ -146,17 +112,15 @@ def _build_fnn_model(
 
 
 # =============================================================================
-# LEGACY EVALUATOR  (UNCHANGED — preserves MOD5 prototype compatibility)
+# FUNCTIONAL BLOCK: Legacy Evaluator
+# 4A) WHAT IT DOES: Provides a single-shot execution context for compiling and
+#     evaluating a PyTorch model. Evaluates fitness per individual.
+# 4B) PARAMETERS: sigma_squared, max_epochs, target_acc, batch_size.
+# 4C) METHODOLOGICAL JUSTIFICATION: This legacy evaluator is maintained strictly
+#     to provide API compatibility for isolated validation environments and tests
+#     that do not require the high-throughput amortized pooling of FNNTrainer.
 # =============================================================================
-
 class PyTorchEvaluator:
-    """Legacy per-call evaluator. Retained verbatim for MOD5 backward compatibility.
-
-    NOTE: For MOD6 production runs use :class:`FNNTrainer` (pool-friendly,
-    ~3–5x faster). This class is kept solely so the working MOD5 prototype
-    continues to run unchanged.
-    """
-
     def __init__(self, dataset_dict: Dict[str, torch.Tensor], sigma_squared: float,
                  activation_name: str = "smooth", topology: str = "shallow",
                  max_epochs: int = 30, target_acc: float = 0.85, batch_size: int = 64,
@@ -262,29 +226,17 @@ class PyTorchEvaluator:
 
 
 # =============================================================================
-# NEW POOL-FRIENDLY EVALUATOR
+# FUNCTIONAL BLOCK: Pool-Friendly Evaluator (FNNTrainer)
+# 4A) WHAT IT DOES: A stateful CPU trainer reused across thousands of weight
+#     initializations. Amortizes dataset binding and DataLoader instantiation.
+# 4B) PARAMETERS: dataset_dict, activation_name, topology, max_epochs, batch_size.
+# 4C) METHODOLOGICAL JUSTIFICATION: In standard execution, instantiating a model
+#     and moving data to device carries an O(N) overhead. By allocating the model
+#     and dataset tensors in contiguous memory once, and simply calling `reset_weights`
+#     per individual, the CPU focuses strictly on matrix multiplication, drastically
+#     accelerating the 80,000+ total PyTorch evaluations required in MOGP.
 # =============================================================================
-
 class FNNTrainer:
-    """Stateful CPU trainer reused across thousands of weight initializations.
-
-    Lifecycle:
-        Build once per ``(dataset_id, activation, topology)`` triple,
-        then call ``reset_weights(sigma_squared) -> evaluate()`` per individual.
-        Amortizes dataset binding, model construction, validation-tensor
-        layout, and per-class support computation across the entire
-        outer GA loop.
-
-    Mathematical Notes:
-        * Weight init: W ~ N(0, sqrt(sigma_squared)), b = 0.
-        * Loss: cross-entropy on logits.
-        * Validation metric: balanced accuracy with vectorized
-          ``scatter_add_`` confusion-diagonal computation.
-        * Stability: gradient L2-norm clipped at 1.0; per-epoch finite
-          check on all parameter gradients; early exit returns
-          ``(0.0, 999.0)`` if any non-finite gradient is observed.
-    """
-
     __slots__ = (
         "X_train", "y_train", "X_val", "y_val",
         "n_train", "input_dim", "num_classes",
@@ -303,60 +255,36 @@ class FNNTrainer:
         target_acc: float = 0.85,
         batch_size: int = 64,
     ) -> None:
-        """Build the trainer once per (dataset, activation, topology) triple.
-
-        Args:
-            dataset_dict: Must contain keys ``X_train``, ``y_train``,
-                ``X_val``, ``y_val`` as torch tensors (already RAM-resident).
-            activation_name: One of the 6 canonical activation tokens.
-            topology: 'shallow' | 'deep_narrow' | 'funnel'.
-            max_epochs: Upper bound on inner training epochs.
-            target_acc: Balanced-accuracy threshold for early stop.
-            batch_size: Minibatch size for SGD.
-
-        Raises:
-            KeyError: If ``dataset_dict`` is missing any required key.
-            ValueError: If train/val row counts mismatch their label arrays.
-        """
         for key in ("X_train", "y_train", "X_val", "y_val"):
             if key not in dataset_dict:
                 raise KeyError(f"dataset_dict missing required key: {key!r}")
 
         device = torch.device("cpu")
 
-        # Contiguous on-CPU references. Cast labels to long once.
-        X_train = dataset_dict["X_train"].to(device=device).contiguous()
-        y_train = dataset_dict["y_train"].to(device=device).long().contiguous()
-        X_val = dataset_dict["X_val"].to(device=device).contiguous()
-        y_val = dataset_dict["y_val"].to(device=device).long().contiguous()
+        self.X_train = dataset_dict["X_train"].to(device=device).contiguous()
+        self.y_train = dataset_dict["y_train"].to(device=device).long().contiguous()
+        self.X_val = dataset_dict["X_val"].to(device=device).contiguous()
+        self.y_val = dataset_dict["y_val"].to(device=device).long().contiguous()
 
-        if X_train.shape[0] != y_train.shape[0]:
+        if self.X_train.shape[0] != self.y_train.shape[0]:
             raise ValueError("X_train and y_train must share dim 0.")
-        if X_val.shape[0] != y_val.shape[0]:
+        if self.X_val.shape[0] != self.y_val.shape[0]:
             raise ValueError("X_val and y_val must share dim 0.")
-        if X_train.shape[1] != X_val.shape[1]:
+        if self.X_train.shape[1] != self.X_val.shape[1]:
             raise ValueError("X_train and X_val must share feature dim.")
 
-        self.X_train = X_train
-        self.y_train = y_train
-        self.X_val = X_val
-        self.y_val = y_val
-        self.n_train = int(X_train.shape[0])
-        self.input_dim = int(X_train.shape[1])
-        # Use the union of labels seen across train+val to size the head.
-        self.num_classes = int(torch.unique(torch.cat([y_train, y_val])).numel())
+        self.n_train = int(self.X_train.shape[0])
+        self.input_dim = int(self.X_train.shape[1])
+        self.num_classes = int(torch.unique(torch.cat([self.y_train, self.y_val])).numel())
 
         self.max_epochs = int(max_epochs)
         self.target_acc = float(target_acc)
         self.batch_size = int(batch_size)
 
-        # Build model once. Linear-only param view avoids isinstance checks per reset.
         self.model = _build_fnn_model(self.input_dim, self.num_classes, activation_name, topology).to(device)
         self._linear_params = [m for m in self.model.modules() if isinstance(m, nn.Linear)]
         self._all_params = list(self.model.parameters())
 
-        # Pre-compute per-class validation support for balanced accuracy.
-        # Vectorized: scatter ones into a (num_classes,) bucket.
         support = torch.zeros(self.num_classes, dtype=torch.float32, device=device)
         support.scatter_add_(0, self.y_val, torch.ones_like(self.y_val, dtype=torch.float32))
         self._val_support = support
@@ -365,21 +293,7 @@ class FNNTrainer:
 
         self._criterion = nn.CrossEntropyLoss()
 
-    # -------------------------------------------------------------------------
-    # Weight reset
-    # -------------------------------------------------------------------------
-
     def reset_weights(self, sigma_squared: float) -> None:
-        """Re-initialize all Linear weights in-place. O(P) parameters.
-
-        Args:
-            sigma_squared: Variance discovered by the outer GP rule.
-                Sanitized to ``max(abs(.), 1e-5)`` to guarantee finite,
-                strictly positive standard deviation.
-
-        Returns:
-            None. Modifies ``self.model`` parameters in place.
-        """
         std_dev = math.sqrt(max(abs(float(sigma_squared)), 1e-5))
         with torch.no_grad():
             for m in self._linear_params:
@@ -387,58 +301,23 @@ class FNNTrainer:
                 if m.bias is not None:
                     m.bias.zero_()
 
-    # -------------------------------------------------------------------------
-    # Balanced accuracy (vectorized)
-    # -------------------------------------------------------------------------
-
     def _balanced_accuracy(self, y_pred: torch.Tensor) -> float:
-        """Macro-averaged balanced accuracy on the validation tensor.
-
-        Mathematical Notes:
-            BA = (1/|C_present|) * sum_{c in C_present} TP_c / N_c
-            where C_present = {c : N_c > 0}. Computed in fully vectorized
-            form using ``scatter_add_`` over the per-sample correctness
-            indicator. O(N_val) time, O(num_classes) extra space.
-        """
         if self._val_n_classes_present == 0:
             return 0.0
         correct_mask = (y_pred == self.y_val).to(torch.float32)
         correct_per_class = torch.zeros(self.num_classes, dtype=torch.float32, device=self.y_val.device)
         correct_per_class.scatter_add_(0, self.y_val, correct_mask)
-        # Safe division: only over classes present (mask).
         acc_per_class = correct_per_class[self._val_support_nonzero_mask] / \
             self._val_support[self._val_support_nonzero_mask]
         return float(acc_per_class.mean().item())
 
-    # -------------------------------------------------------------------------
-    # Gradient finite-ness check
-    # -------------------------------------------------------------------------
-
     def _has_nonfinite_gradients(self) -> bool:
-        """True iff any parameter holds a NaN or Inf in its .grad buffer."""
         for p in self._all_params:
             if p.grad is not None and not torch.isfinite(p.grad).all():
                 return True
         return False
 
-    # -------------------------------------------------------------------------
-    # Main evaluation loop
-    # -------------------------------------------------------------------------
-
     def evaluate(self) -> Tuple[float, float]:
-        """Train to ``max_epochs`` (or early stop), return (balanced_acc, epochs).
-
-        Returns:
-            Tuple ``(final_balanced_acc, epochs_to_threshold)``. If gradient
-            collapse is detected at any epoch boundary, returns
-            ``(0.0, 999.0)`` as the sentinel for the outer GP loop.
-
-        Mathematical Notes:
-            * Optimizer state is fresh (Adam, lr=5e-3) on every call so
-              that previous rule evaluations do not pollute moment estimates.
-            * Minibatches are drawn via ``torch.randperm`` + ``index_select``
-              for ~3x throughput over ``DataLoader`` on RAM-resident tensors.
-        """
         optimizer = optim.Adam(self._all_params, lr=0.005)
         epochs_to_threshold = float(self.max_epochs)
         final_val_acc = 0.0
@@ -448,7 +327,6 @@ class FNNTrainer:
             self.model.train()
             perm = torch.randperm(self.n_train, device=self.X_train.device)
 
-            # Vectorized minibatch dispatch via index_select.
             for start in range(0, self.n_train, batch):
                 idx = perm[start:start + batch]
                 batch_X = self.X_train.index_select(0, idx)
@@ -461,12 +339,9 @@ class FNNTrainer:
                 nn.utils.clip_grad_norm_(self._all_params, max_norm=1.0)
                 optimizer.step()
 
-            # Per-epoch (was per-batch) NaN safeguard. Grad clip + Adam make
-            # per-batch checks unnecessary in practice.
             if self._has_nonfinite_gradients():
                 return 0.0, 999.0
 
-            # Validation pass.
             self.model.eval()
             with torch.no_grad():
                 val_logits = self.model(self.X_val)

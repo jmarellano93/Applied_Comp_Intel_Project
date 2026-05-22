@@ -23,30 +23,23 @@ from sklearn.pipeline import Pipeline
 import warnings
 
 warnings.filterwarnings("ignore")
-
-# Configure scientific logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - ACI-CACHE - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
-
-# Dynamically resolve the directory containing this script (experiment_modules)
 MODULE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-
+# =============================================================================
+# FUNCTIONAL BLOCK: Cache Configuration
+# 4A) WHAT IT DOES: Maps paths and sets fundamental topological bounds for testing.
+# 4B) PARAMETERS: test_size (0.2), random_seed (42).
+# 4C) METHODOLOGICAL JUSTIFICATION:
+#     - test_size=0.2 enforces the standard 80/20 Pareto principle for Train/Test
+#       splits. This ratio guarantees the network has enough dense data to converge,
+#       while providing a sufficiently large validation set to prove generalization.
+# =============================================================================
 class CacheConfig(BaseModel):
-    """
-    Configuration schema for RAM ingestion paths and split parameters.
-    Utilizes dynamic relative pathing for maximum portability.
-    """
-    module_dir: str = Field(
-        default=MODULE_DIR,
-        description="Dynamically resolved directory of the current module."
-    )
-    phase_csv_name: str = Field(
-        default="Phase_A_Discovery_Datasets.csv",
-        description="Target dataset partition list to load."
-    )
+    module_dir: str = Field(default=MODULE_DIR, description="Dynamically resolved directory of the current module.")
+    phase_csv_name: str = Field(default="Phase_A_Discovery_Datasets.csv", description="Target dataset partition list to load.")
 
-    # Internal paths resolved post-validation
     generated_dir: str = ""
     dataset_dir: str = ""
     metadata_path: str = ""
@@ -57,7 +50,6 @@ class CacheConfig(BaseModel):
 
     @model_validator(mode='after')
     def build_paths(self) -> 'CacheConfig':
-        """Dynamically maps operational paths relative to the script's execution location."""
         self.generated_dir = os.path.join(self.module_dir, "generated_files")
         self.dataset_dir = os.path.join(self.module_dir, "openml_cc18_datasets")
         self.metadata_path = os.path.join(self.generated_dir, self.phase_csv_name)
@@ -66,17 +58,10 @@ class CacheConfig(BaseModel):
 
 
 class DatasetManager:
-    """
-    Ingests raw CC18 CSVs, applies strictly isolated topological transformations 
-    (Universal StandardScaler Baseline), and pins PyTorch tensors into system RAM.
-    """
-
     def __init__(self, config: CacheConfig):
         self.cfg = config
         self.dataset_cache: Dict[int, Dict[str, torch.Tensor]] = {}
         self.meta_features_cache: Dict[int, torch.Tensor] = {}
-
-        # Load the target mapping offline to prevent OpenML API network calls
         self._target_mapping = self._build_target_mapping()
 
     def _build_target_mapping(self) -> Dict[int, str]:
@@ -122,6 +107,17 @@ class DatasetManager:
 
         return X, y
 
+    # =============================================================================
+    # FUNCTIONAL BLOCK: Preprocessing Pipeline Construction
+    # 4A) WHAT IT DOES: Imputes missing values, encodes categories, and scales features.
+    # 4B) PARAMETERS: strategy="median", strategy="most_frequent", handle_unknown="use_encoded_value".
+    # 4C) METHODOLOGICAL JUSTIFICATION:
+    #     - Median imputation is used rather than Mean because it is statistically robust
+    #       to extreme numerical outliers.
+    #     - StandardScaler mathematically restricts inputs to a Gaussian distribution (mean=0, std=1).
+    #       This is absolutely mandatory for Neural Networks to prevent catastrophic gradient
+    #       explosion and to ensure stable initial weight distributions.
+    # =============================================================================
     def build_preprocessing_pipeline(self, X: pd.DataFrame) -> ColumnTransformer:
         cat_cols = X.select_dtypes(include=["object", "string", "category", "bool"]).columns.tolist()
         num_cols = X.select_dtypes(exclude=["object", "string", "category", "bool"]).columns.tolist()

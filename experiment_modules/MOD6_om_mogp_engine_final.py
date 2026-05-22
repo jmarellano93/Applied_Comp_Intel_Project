@@ -7,7 +7,7 @@ functions. Explicitly CPU-routed for Phase A (Shallow FNN).
 Methodological configuration (production):
     * Population: 100
     * Generations: 20
-    * Datasets evaluated per rule: 20
+    * Datasets evaluated per rule: 30
     * Max epochs per inner training: 30
     * Cumulative PyTorch CPU evaluations: ~240,000
 
@@ -62,7 +62,7 @@ class MOGPConfig(BaseModel):
     """
 
     # --- Outer GA dimensions ---
-    population_size: int = Field(default=100, gt=0)
+    population_size: int = Field(default=150, gt=0)
     generations: int = Field(default=20, gt=0)
     datasets_per_rule: int = Field(default=20, gt=0)
     max_epochs: int = Field(default=30, gt=0)

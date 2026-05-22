@@ -1,0 +1,28 @@
+APPLIED COMPUTATIONAL INTELLIGENCE: MODULE 6 RESULTS
+Activation Function: RECTIFICATION
+Status: CHECKPOINT (Generation 0)
+========================================================================
+--- SYSTEM & ENVIRONMENT LOG ---
+Python Version: 3.12.6
+PyTorch Version: 2.5.1+cu121
+DEAP Version: 1.4
+Scikit-Learn Version: 1.8.0
+OS Platform: Windows-11-10.0.26200-SP0
+Hardware: AMD64 / Intel64 Family 6 Model 165 Stepping 2, GenuineIntel
+Execution Target: CPU-ONLY (Explicitly routed to maximize shallow network throughput)
+Hardware Optimization -> AMP: False | JIT Compile: False
+Data Pipeline -> Pinned Memory: False | Workers: 0
+Random Seed: 42
+Git Commit: 814f4037c8b1b70105cf36f8f29c57b830a79acd
+--------------------------------
+========================================================================
+Population: 20 | Generations: 5
+Datasets/Rule: 3 | Batch: 64 | Topology: shallow
+========================================================================
+
+Top Discovered Rules-of-Thumb (Pareto Optimal):
+
+Rank 1:
+Equation: sin(silhouette)
+Fitness: [Acc: 0.7407, Epochs: 4.67, Bloat: 2.0]
+

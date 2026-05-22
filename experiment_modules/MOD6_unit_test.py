@@ -1,26 +1,29 @@
 """
-Unit Tests for Module 6: Genetic Artifact Target Routing
+Unit Tests for Module 6: Production Genetic Artifact Target Routing
 """
 
 import pytest
 from pathlib import Path
-
-# Assuming module filename is MOD6_om_mogp_engine_final.py
 import MOD6_om_mogp_engine_final as mod6
 
 def test_get_generated_directory_nesting_logic():
     """
     Validates that the output directory properly nests the execution trace
-    within the explicit GA_rule_files subdirectory.
+    within the explicit partitioned GA_rule_files subdirectory.
     """
     output_path = mod6.get_generated_directory()
-
-    # Assert that the pathing resolves locally rather than hardcoded C:\
     assert isinstance(output_path, Path)
 
-    # Extract the last two nested directory names
+    # Ensure path maps to exactly experiment_modules/generated_files/GA_rule_files
     trailing_paths = output_path.parts[-2:]
-
-    # Ensure they map strictly to the new requirement
     assert trailing_paths == ('generated_files', 'GA_rule_files'), \
         "Pathing engine failed to nest inside GA_rule_files directory."
+
+def test_production_hyperparameter_boundaries():
+    """Ensures Pydantic schema validation defaults protect methodological integrity."""
+    config = mod6.MOGPConfig()
+
+    # Verify strict production-level variables are enforced
+    assert config.population_size == 150
+    assert config.generations == 20
+    assert config.datasets_per_rule == 20

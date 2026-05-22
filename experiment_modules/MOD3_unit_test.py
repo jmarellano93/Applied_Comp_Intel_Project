@@ -10,13 +10,11 @@ import pytest
 import torch
 import numpy as np
 import pandas as pd
-from unittest.mock import patch, MagicMock
 
 import MOD3_pm_dataset_manager as mod3
 
 def test_dynamic_config_paths(tmp_path):
     """Ensure dynamic routing dynamically builds paths relative to execution location."""
-    # tmp_path simulates a fresh environment directory
     cfg = mod3.CacheConfig(
         module_dir=str(tmp_path),
         phase_csv_name="Phase_A_Discovery_Datasets.csv"
@@ -38,15 +36,12 @@ def test_semicolon_parsing(tmp_path):
     interprets semicolon-delimited structural configurations.
     """
     cfg = mod3.CacheConfig(module_dir=str(tmp_path))
-    # Override dataset_dir explicitly for the mock file
     cfg.dataset_dir = str(tmp_path)
     manager = mod3.DatasetManager(cfg)
 
-    # Create mock semicolon dataset matrix
     csv_file = tmp_path / "99_test.csv"
     csv_file.write_text("feature_1;feature_2;target\n1.0;2.0;class_a\n3.0;4.0;class_b")
 
-    # Bypass exact target mapping, allowing structural fallback to last column
     X, y = manager.read_dataset_offline(str(csv_file), 99)
 
     assert X.shape == (2, 2), "Matrix failed to parse semicolon delimiter dimensions."
@@ -61,20 +56,14 @@ def test_leak_free_pipeline():
     cfg = mod3.CacheConfig()
     manager = mod3.DatasetManager(cfg)
 
-    # Synthetic DataFrame with purposeful extreme outliers
     X_train_raw = pd.DataFrame({"num": [1, 2, 3, 4], "cat": ["a", "b", "a", "c"]})
-    X_val_raw = pd.DataFrame({"num": [1000], "cat": ["z"]}) # Extreme outlier and unknown category
+    X_val_raw = pd.DataFrame({"num": [1000], "cat": ["z"]})
 
     preprocessor = manager.build_preprocessing_pipeline(X_train_raw)
-
-    # Fit strictly on train utilizing Universal StandardScaler
     X_train_proc = preprocessor.fit_transform(X_train_raw)
-
-    # Ensure validation transformation does NOT shift the mathematical center
     X_val_proc = preprocessor.transform(X_val_raw)
 
     assert X_train_proc.shape[1] == 2
-    # Ensure unknown categorical 'z' was safely fallback-encoded (-1 fallback) without crashing
     assert not np.isnan(X_val_proc).any()
 
 def test_tensor_typing_constraints():
