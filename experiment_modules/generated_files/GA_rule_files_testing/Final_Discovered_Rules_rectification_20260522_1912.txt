@@ -1,0 +1,47 @@
+APPLIED COMPUTATIONAL INTELLIGENCE: MODULE 6 RESULTS
+Activation Function: RECTIFICATION
+Status: FINAL COMPLETE RUN
+========================================================================
+--- SYSTEM & ENVIRONMENT LOG ---
+Python Version: 3.12.6
+PyTorch Version: 2.5.1+cu121
+DEAP Version: 1.4
+Scikit-Learn Version: 1.8.0
+OS Platform: Windows-11-10.0.26200-SP0
+Hardware: AMD64 / Intel64 Family 6 Model 165 Stepping 2, GenuineIntel
+Execution Target: CPU-ONLY (Phase A shallow FNN)
+PyTorch Threads -> intra_op: 4 | inter_op: 1
+Random Seed: 42
+Git Commit: 66e6c484f63e2130cc7bdd3aeaa21a36ad374c07
+--------------------------------
+========================================================================
+Population: 150 | Generations: 20
+Datasets/Rule: 20 | Batch: 64 | Topology: shallow
+========================================================================
+
+Top Discovered Rules-of-Thumb (Pareto Optimal):
+
+Rank 1:
+Equation: neg(-0.02293629570124689)
+Fitness: [Acc: 0.7547, Epochs: 21.00, Bloat: 2.0]
+
+Rank 2:
+Equation: mul(-0.012968330220737956, cos(pc_eigen))
+Fitness: [Acc: 0.7536, Epochs: 20.85, Bloat: 4.0]
+
+Rank 3:
+Equation: mul(-0.012968330220737956, cos(neg(silhouette)))
+Fitness: [Acc: 0.7518, Epochs: 19.70, Bloat: 5.0]
+
+Rank 4:
+Equation: mul(-0.012968330220737956, -0.8261223347411677)
+Fitness: [Acc: 0.7514, Epochs: 19.65, Bloat: 3.0]
+
+Rank 5:
+Equation: neg(0.01939542057944066)
+Fitness: [Acc: 0.7511, Epochs: 20.90, Bloat: 2.0]
+
+Rank 6:
+Equation: -0.006667200350786162
+Fitness: [Acc: 0.7452, Epochs: 20.80, Bloat: 1.0]
+
