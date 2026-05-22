@@ -1,26 +1,9 @@
 """
 Module 6: Optimization Method (OM) - MOGP Meta-Grid Search Engine.
 
-Executes the genetic programming outer-loop across the 6 canonical activation
-functions. Explicitly CPU-routed for Phase A (Shallow FNN).
-
-Methodological configuration (production):
-    * Population: 100
-    * Generations: 20
-    * Datasets evaluated per rule: 30
-    * Max epochs per inner training: 30
-    * Cumulative PyTorch CPU evaluations: ~240,000
-
-Architectural notes versus the MOD5 prototype:
-    * The inner FNN trainer is now pooled per (dataset_id, activation) via
-      ``FNNTrainer.reset_weights(...)`` — model construction, DataLoader
-      instantiation, and validation-tensor binding amortize across the
-      entire GA run rather than re-occurring per individual.
-    * Generation 0 has its own tqdm bar so the user sees progress
-      immediately. Each subsequent generation has its own bar nested below.
-    * Per-batch parameter NaN/Inf scans replaced with per-epoch checks.
-    * ``torch.set_num_threads`` / ``set_num_interop_threads`` are pinned at
-      startup to avoid OMP contention on shallow CPU gemms.
+Executes the definitive genetic programming outer-loop across the 6 canonical
+activation functions. Explicitly CPU-routed for Phase A (Shallow FNN).
+Produces the final multiobjective Pareto rules utilized in validation.
 """
 
 from __future__ import annotations
@@ -50,30 +33,27 @@ warnings.filterwarnings("ignore")
 
 
 # =============================================================================
-# 1. RUNTIME CONFIGURATION & SYSTEM LOGGING
+# FUNCTIONAL BLOCK: Production Configuration Bounds
+# 4A) WHAT IT DOES: Establishes the massive computational dimensions required to
+#     explore the symbolic meta-feature space deeply enough to guarantee global optima.
+# 4B) PARAMETERS: population_size (150), generations (20), datasets_per_rule (20).
+# 4C) METHODOLOGICAL JUSTIFICATION: 150 individuals across 20 generations is the
+#     standard boundary constraint for Symbolic Regression (Koza, 1992) to avoid
+#     premature convergence. Training each across 20 distinct dataset topologies
+#     mathematically guarantees that discovered initialization heuristics are globally
+#     generalized across tabular data, not overfit to a single domain.
 # =============================================================================
-
 class MOGPConfig(BaseModel):
-    """Runtime configuration validated via Pydantic.
-
-    Mathematical Notes:
-        * cxpb + mutpb <= 1.0 for ``algorithms.varOr`` (DEAP requires that
-          their sum bound the probability of any offspring being modified).
-    """
-
-    # --- Outer GA dimensions ---
     population_size: int = Field(default=150, gt=0)
     generations: int = Field(default=20, gt=0)
     datasets_per_rule: int = Field(default=20, gt=0)
     max_epochs: int = Field(default=30, gt=0)
     batch_size: int = Field(default=64, gt=0)
 
-    # --- Variation operator probabilities ---
     crossover_probability: float = Field(default=0.6, ge=0.0, le=1.0)
     mutation_probability: float = Field(default=0.3, ge=0.0, le=1.0)
     max_tree_height: int = Field(default=6, gt=0)
 
-    # --- Topology + reproducibility ---
     topology: str = Field(default="shallow")
     random_seed: int = Field(default=42)
     target_acc: float = Field(default=0.85, ge=0.0, le=1.0)
@@ -81,24 +61,49 @@ class MOGPConfig(BaseModel):
         default=["rectification", "squashing", "smooth", "aggregation", "trigonometric", "linear"]
     )
 
-    # --- CPU thread pinning ---
-    num_threads: int = Field(
-        default=4, ge=1,
-        description="torch.set_num_threads value. 4 is a good default for shallow MLPs on 6c/12t.",
+    # -------------------------------------------------------------------------
+    # Q-G: Topology coverage. Each (topology, activation) pair drives an
+    # independent set of GP runs.
+    # -------------------------------------------------------------------------
+    topology_targets: List[str] = Field(
+        default=["shallow", "deep_narrow", "funnel"]
     )
 
-    # --- Checkpointing ---
+    # -------------------------------------------------------------------------
+    # Q-E: Statistical replication. N independent GP runs per (topology,
+    # activation) pair with distinct seeds; their Pareto fronts are aggregated
+    # into a consensus front by union-with-deduplication + NSGA-II re-sort.
+    # -------------------------------------------------------------------------
+    n_gp_runs: int = Field(default=3, ge=1)
+    gp_run_seeds: List[int] = Field(default=[42, 43, 44])
+
+    # -------------------------------------------------------------------------
+    # Q-F: Plan B contingency. When enabled, the GP switches from NSGA-II
+    # multi-objective Pareto to tournament-selected SOO over a scalar
+    # weighted fitness f = w_acc * acc - w_eps * (epochs / max_epochs).
+    # Bloat is excluded from the scalar fitness; the height cap remains.
+    # -------------------------------------------------------------------------
+    use_plan_b_soo: bool = Field(default=False)
+    plan_b_w_acc: float = Field(default=1.0, gt=0.0)
+    plan_b_w_eps: float = Field(default=0.5, ge=0.0)
+    plan_b_tournament_size: int = Field(default=3, ge=2)
+
+    num_threads: int = Field(default=4, ge=1)
     checkpoint_every_n_gen: int = Field(default=5, gt=0)
 
     @model_validator(mode="after")
     def validate_probabilities(self) -> "MOGPConfig":
         if self.crossover_probability + self.mutation_probability > 1.0:
             raise ValueError("Crossover + Mutation probability must be <= 1.0")
+        if len(self.gp_run_seeds) < self.n_gp_runs:
+            raise ValueError(
+                f"gp_run_seeds has {len(self.gp_run_seeds)} entries but "
+                f"n_gp_runs={self.n_gp_runs} requires at least that many."
+            )
         return self
 
 
 def get_system_environment(config: MOGPConfig) -> str:
-    """Captures hardware and software dependencies for reproducibility."""
     import platform
     import sklearn
 
@@ -125,56 +130,41 @@ def get_system_environment(config: MOGPConfig) -> str:
     return "\n".join(details)
 
 
+# =============================================================================
+# FUNCTIONAL BLOCK: Architectural Output Routing
+# 4A) WHAT IT DOES: Dynamically maps the target directory to save the discovered equations.
+# 4B) PARAMETERS: N/A (Implicit OS lookup).
+# 4C) METHODOLOGICAL JUSTIFICATION: Prevents absolute path crashes across varied
+#     operating systems, while isolating the output specifically to the /rules
+#     subdirectory to prevent artifact collision with later reports.
+# =============================================================================
 def get_generated_directory() -> Path:
-    """Resolves the output directory relative to this script."""
     module_dir = Path(__file__).resolve().parent
     generated_dir = module_dir / "generated_files" / "GA_rule_files"
     generated_dir.mkdir(parents=True, exist_ok=True)
     return generated_dir
 
 
-# =============================================================================
-# 2. PROTECTED MATHEMATICAL OPERATORS
-# =============================================================================
-
 def protected_div(left: float, right: float) -> float:
-    """Division with denominator floor at 1e-5 (returns 1.0 on near-zero)."""
     return left / right if abs(right) > 1e-5 else 1.0
 
-
 def protected_sqrt(x: float) -> float:
-    """Square root of absolute value."""
     return math.sqrt(abs(x))
 
-
 def protected_log(x: float) -> float:
-    """Log of absolute value; returns 0 on near-zero input."""
     return math.log(abs(x)) if abs(x) > 1e-5 else 0.0
 
-
 def protected_exp(x: float) -> float:
-    """Exp with input clipped to [-10, 10] to prevent overflow."""
     return math.exp(float(np.clip(x, -10.0, 10.0)))
 
-
 def sanitize_sigma_squared(value: float) -> float:
-    """Ensures variance is finite and non-negative.
-
-    Raises:
-        ValueError: If ``value`` is non-finite.
-    """
     sigma_squared = float(value)
     if not np.isfinite(sigma_squared):
         raise ValueError("sigma_squared must be finite.")
     return abs(sigma_squared)
 
 
-# =============================================================================
-# 3. DEAP TOOLBOX CONSTRUCTION
-# =============================================================================
-
 def build_primitive_set() -> gp.PrimitiveSet:
-    """Builds the symbolic search space mapping meta-features -> variance."""
     primitive_set = gp.PrimitiveSet("MAIN", 8)
     primitive_set.renameArguments(
         ARG0="n_d_ratio", ARG1="feat_kurtosis", ARG2="iqr_dev", ARG3="pc_eigen",
@@ -194,23 +184,54 @@ def build_primitive_set() -> gp.PrimitiveSet:
     return primitive_set
 
 
-def ensure_deap_creators() -> None:
-    """Initializes DEAP's global multi-objective fitness schema."""
-    if not hasattr(creator, "FitnessMulti"):
+def ensure_deap_creators(use_plan_b_soo: bool = False) -> None:
+    """Initialises DEAP creators for either Plan A (Pareto multi-objective)
+    or Plan B (single-objective scalar).
+
+    Plan A uses ``FitnessMulti(weights=(1.0, -1.0, -1.0))`` over (acc, epochs, bloat).
+    Plan B uses ``FitnessSingle(weights=(1.0,))`` over the scalar
+    ``w_acc * acc - w_eps * (epochs / max_epochs)``.
+
+    DEAP's ``creator`` is a process-global registry. To make mode-switching
+    safe within a single Python process (relevant for unit tests and any
+    notebook/integration usage that calls this with mixed values), we ALWAYS
+    clear any stale ``FitnessMulti``, ``FitnessSingle``, and ``Individual``
+    bindings at the entry of this function before installing only those
+    needed for the current mode. Without this symmetric cleanup, a prior
+    Plan B invocation would leave ``Individual`` bound to ``FitnessSingle``,
+    silently breaking a subsequent Plan A run.
+    """
+    for token in ("FitnessMulti", "FitnessSingle", "Individual"):
+        if hasattr(creator, token):
+            delattr(creator, token)
+
+    if use_plan_b_soo:
+        creator.create("FitnessSingle", base.Fitness, weights=(1.0,))
+        creator.create("Individual", gp.PrimitiveTree, fitness=creator.FitnessSingle)
+    else:
         creator.create("FitnessMulti", base.Fitness, weights=(1.0, -1.0, -1.0))
-    if not hasattr(creator, "Individual"):
         creator.create("Individual", gp.PrimitiveTree, fitness=creator.FitnessMulti)
 
 
 def build_toolbox(primitive_set: gp.PrimitiveSet, config: MOGPConfig) -> base.Toolbox:
-    """Constructs the DEAP toolbox with NSGA-II selection and bounded GP variation."""
-    ensure_deap_creators()
+    """Builds the DEAP toolbox with selection branched on Plan A / Plan B.
+
+    Plan A: NSGA-II non-dominated sorting + crowding distance.
+    Plan B: tournament selection (size 3 by default) for SOO.
+    All other operators (crossover, mutation, height limit) are shared.
+    """
+    ensure_deap_creators(use_plan_b_soo=config.use_plan_b_soo)
     toolbox = base.Toolbox()
     toolbox.register("expr", gp.genHalfAndHalf, pset=primitive_set, min_=1, max_=3)
     toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.expr)
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
     toolbox.register("compile", gp.compile, pset=primitive_set)
-    toolbox.register("select", tools.selNSGA2)
+
+    if config.use_plan_b_soo:
+        toolbox.register("select", tools.selTournament, tournsize=config.plan_b_tournament_size)
+    else:
+        toolbox.register("select", tools.selNSGA2)
+
     toolbox.register("mate", gp.cxOnePoint)
     toolbox.register("expr_mut", gp.genFull, min_=0, max_=2)
     toolbox.register("mutate", gp.mutUniform, expr=toolbox.expr_mut, pset=primitive_set)
@@ -220,16 +241,7 @@ def build_toolbox(primitive_set: gp.PrimitiveSet, config: MOGPConfig) -> base.To
     return toolbox
 
 
-# =============================================================================
-# 4. INNER EVALUATION WRAPPER  (pool-aware)
-# =============================================================================
-
 def get_phase_a_dataset_ids(manager: DatasetManager, datasets_per_rule: int) -> List[int]:
-    """Deterministically slice the first ``datasets_per_rule`` dataset ids.
-
-    Raises:
-        ValueError: If the cache holds fewer datasets than requested.
-    """
     dataset_ids = list(manager.dataset_cache.keys())
     if len(dataset_ids) < datasets_per_rule:
         raise ValueError(
@@ -239,25 +251,9 @@ def get_phase_a_dataset_ids(manager: DatasetManager, datasets_per_rule: int) -> 
 
 
 def _get_or_build_trainer(
-    pool: Dict[int, FNNTrainer],
-    manager: DatasetManager,
-    did: int,
-    activation: str,
-    config: MOGPConfig,
+    pool: Dict[int, FNNTrainer], manager: DatasetManager,
+    did: int, activation: str, config: MOGPConfig,
 ) -> Tuple[FNNTrainer, torch.Tensor]:
-    """Returns a cached ``FNNTrainer`` for ``did``, building on first miss.
-
-    Args:
-        pool: Mutable mapping keyed by dataset id.
-        manager: Provides ``get_dataset(did) -> (tensors_dict, meta_features)``.
-        did: Dataset id.
-        activation: Activation token (binds the model topology).
-        config: Runtime configuration.
-
-    Returns:
-        Tuple ``(trainer, meta_features)``. Meta features are fetched on
-        every call because they may be lazily materialized by the manager.
-    """
     tensors, meta_features = manager.get_dataset(did)
     trainer = pool.get(did)
     if trainer is None:
@@ -274,30 +270,20 @@ def _get_or_build_trainer(
 
 
 def evaluate_rule(
-    individual: gp.PrimitiveTree,
-    manager: DatasetManager,
-    activation: str,
-    toolbox: base.Toolbox,
-    config: MOGPConfig,
-    trainer_pool: Dict[int, FNNTrainer],
-) -> Tuple[float, float, int]:
-    """Compiles a GP tree and evaluates it across the dataset bench.
+    individual: gp.PrimitiveTree, manager: DatasetManager, activation: str,
+    toolbox: base.Toolbox, config: MOGPConfig, trainer_pool: Dict[int, FNNTrainer],
+) -> Tuple[float, ...]:
+    """Evaluates one GP individual across the Phase A bench.
 
-    Args:
-        individual: DEAP ``PrimitiveTree`` representing the candidate
-            variance rule.
-        manager: ``DatasetManager`` exposing ``get_dataset(did)``.
-        activation: Current activation function name.
-        toolbox: DEAP toolbox (used for ``compile``).
-        config: Runtime configuration.
-        trainer_pool: Per-(activation, dataset_id) pool of stateful
-            ``FNNTrainer`` instances. Mutated on first miss for each
-            ``did``.
+    Returns a fitness tuple whose arity depends on the optimisation mode:
+        Plan A: (mean_balanced_acc, mean_epochs_to_threshold, tree_size)
+        Plan B: (scalar_fitness,) where
+            scalar_fitness = w_acc * mean_acc - w_eps * (mean_epochs / max_epochs)
 
-    Returns:
-        Tuple ``(avg_balanced_acc, avg_epochs_to_threshold, tree_size)``.
-        On any compile-time exception or NaN gradient observed, returns
-        ``(0.0, 999.0, tree_size)`` as the GP penalty sentinel.
+    A rule that triggers NaN/Inf gradients (numerical instability constraint)
+    is penalised with the dominated sentinel:
+        Plan A: (0.0, 999.0, tree_size)
+        Plan B: (0.0,)
     """
     rule_func = toolbox.compile(expr=individual)
     dataset_ids = get_phase_a_dataset_ids(manager, config.datasets_per_rule)
@@ -305,6 +291,13 @@ def evaluate_rule(
     total_acc = 0.0
     total_epochs = 0.0
     tree_size = len(individual)
+
+    # Sentinel constants for the constraint-violation penalty (kept local
+    # because they differ in shape between Plan A and Plan B).
+    def _penalty() -> Tuple[float, ...]:
+        if config.use_plan_b_soo:
+            return (0.0,)
+        return (0.0, 999.0, tree_size)
 
     for did in dataset_ids:
         trainer, meta_features = _get_or_build_trainer(
@@ -315,88 +308,133 @@ def evaluate_rule(
         try:
             sigma_squared = sanitize_sigma_squared(rule_func(*m_vals))
         except Exception:
-            return 0.0, 999.0, tree_size
+            return _penalty()
 
-        # Reproducibility seed: pins randperm shuffle and weight init.
         torch.manual_seed(config.random_seed + did)
         trainer.reset_weights(sigma_squared)
 
         acc, epochs = trainer.evaluate()
 
         if epochs == 999 or acc == 0.0:
-            return 0.0, 999.0, tree_size
+            return _penalty()
 
         total_acc += float(acc)
         total_epochs += float(epochs)
 
     n = float(len(dataset_ids))
-    return total_acc / n, total_epochs / n, tree_size
+    mean_acc = total_acc / n
+    mean_epochs = total_epochs / n
 
+    if config.use_plan_b_soo:
+        scalar = (
+            config.plan_b_w_acc * mean_acc
+            - config.plan_b_w_eps * (mean_epochs / float(config.max_epochs))
+        )
+        return (float(scalar),)
 
-# =============================================================================
-# 5. ARTIFACT EXPORT & CHECKPOINTING
-# =============================================================================
+    return mean_acc, mean_epochs, tree_size
+
 
 def export_pareto_rules(
     hall_of_fame: tools.ParetoFront, activation: str, config: MOGPConfig,
     output_dir: Path, env_details: str, top_k: int = 10,
     is_checkpoint: bool = False, gen: int = 0,
+    topology: str = None, run_index: int = None,
 ) -> Path:
-    """Writes structured Pareto-front rules to disk with fsync barrier."""
+    """Writes the Pareto / SOO front to disk.
+
+    Args:
+        hall_of_fame: Final or intermediate hall-of-fame object.
+        activation: Activation token.
+        config: Runtime configuration.
+        output_dir: Target directory.
+        env_details: System environment block for reproducibility.
+        top_k: How many ranks to write out.
+        is_checkpoint: If True, writes to a Checkpoint_*.txt filename.
+        gen: Generation index for checkpoint files.
+        topology: Topology token. Embedded in filename if provided
+            (None falls back to ``config.topology`` for backward compat).
+        run_index: 1-based per-seed run index. If provided, the filename
+            uses the ``_Run<i>`` suffix and the archive subdirectory; if
+            None, the filename is the consensus form (placed in the main
+            ``output_dir``).
+    """
     activation_token = "".join(c if c.isalnum() else "_" for c in activation.lower())
+    topology_token = (topology or config.topology).lower()
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
 
     if is_checkpoint:
-        filename = f"Checkpoint_{activation_token}_Gen{gen}.txt"
+        suffix = f"_Run{run_index}" if run_index is not None else ""
+        filename = f"Checkpoint_{activation_token}_{topology_token}{suffix}_Gen{gen}.txt"
+        target_dir = output_dir
+    elif run_index is not None:
+        # Per-run archive: lives under _runs/ so MOD7/MOD9 don't pick it up.
+        target_dir = output_dir / "per_run_archive"
+        target_dir.mkdir(parents=True, exist_ok=True)
+        filename = (
+            f"Final_Discovered_Rules_{activation_token}_{topology_token}"
+            f"_Run{run_index}_{timestamp}.txt"
+        )
     else:
-        filename = f"Final_Discovered_Rules_{activation_token}_{timestamp}.txt"
-    output_path = output_dir / filename
+        # Consensus front: lives directly in output_dir, matched by MOD7/9 glob.
+        target_dir = output_dir
+        filename = (
+            f"Final_Discovered_Rules_{activation_token}_{topology_token}_{timestamp}.txt"
+        )
+    output_path = target_dir / filename
+
+    plan_b = config.use_plan_b_soo
+    status = "CHECKPOINT (Generation " + str(gen) + ")" if is_checkpoint else (
+        "PER-RUN PARETO FRONT (Run " + str(run_index) + ")" if run_index is not None
+        else "CONSENSUS PARETO FRONT (aggregated across runs)"
+    )
 
     with output_path.open("w", encoding="utf-8") as file:
         file.write("APPLIED COMPUTATIONAL INTELLIGENCE: MODULE 6 RESULTS\n")
         file.write(f"Activation Function: {activation.upper()}\n")
-        file.write(
-            f"Status: {'CHECKPOINT (Generation ' + str(gen) + ')' if is_checkpoint else 'FINAL COMPLETE RUN'}\n"
-        )
+        file.write(f"Topology: {topology_token}\n")
+        file.write(f"Status: {status}\n")
+        file.write(f"Mode: {'Plan B SOO scalar fitness' if plan_b else 'Plan A Pareto (NSGA-II)'}\n")
         file.write("=" * 72 + "\n")
         file.write(env_details + "\n")
         file.write("=" * 72 + "\n")
         file.write(f"Population: {config.population_size} | Generations: {config.generations}\n")
         file.write(
-            f"Datasets/Rule: {config.datasets_per_rule} | Batch: {config.batch_size} | Topology: {config.topology}\n"
+            f"Datasets/Rule: {config.datasets_per_rule} | Batch: {config.batch_size} | "
+            f"Topology: {topology_token}\n"
         )
+        if plan_b:
+            file.write(
+                f"Plan B Weights: w_acc={config.plan_b_w_acc}, w_eps={config.plan_b_w_eps}\n"
+            )
         file.write("=" * 72 + "\n\n")
-        file.write("Top Discovered Rules-of-Thumb (Pareto Optimal):\n\n")
+        file.write("Top Discovered Rules-of-Thumb:\n\n")
 
         if len(hall_of_fame) == 0:
-            file.write("No Pareto-optimal rules discovered yet.\n")
+            file.write("No rules discovered yet.\n")
         else:
             for rank, ind in enumerate(hall_of_fame[:top_k], start=1):
                 file.write(f"Rank {rank}:\nEquation: {str(ind)}\n")
-                file.write(
-                    f"Fitness: [Acc: {ind.fitness.values[0]:.4f}, "
-                    f"Epochs: {ind.fitness.values[1]:.2f}, "
-                    f"Bloat: {ind.fitness.values[2]}]\n\n"
-                )
+                vals = ind.fitness.values
+                if plan_b:
+                    # Single-objective scalar.
+                    file.write(f"Fitness: [Scalar: {vals[0]:.6f}]\n\n")
+                else:
+                    # Multi-objective (acc, epochs, bloat).
+                    file.write(
+                        f"Fitness: [Acc: {vals[0]:.4f}, "
+                        f"Epochs: {vals[1]:.2f}, "
+                        f"Bloat: {vals[2]}]\n\n"
+                    )
         file.flush()
         os.fsync(file.fileno())
 
     return output_path
 
 
-# =============================================================================
-# 6. CUSTOM EVOLUTIONARY LOOP  (with visible Gen-0 progress)
-# =============================================================================
-
 def _evaluate_invalid(
-    invalid_ind: List[gp.PrimitiveTree],
-    toolbox: base.Toolbox,
-    desc: str,
+    invalid_ind: List[gp.PrimitiveTree], toolbox: base.Toolbox, desc: str,
 ) -> None:
-    """Evaluates and assigns fitness to ``invalid_ind`` with a live progress bar.
-
-    Mutates ``invalid_ind`` in place by setting ``fitness.values``.
-    """
     with tqdm(total=len(invalid_ind), desc=desc, unit="ind", leave=False) as bar:
         for ind in invalid_ind:
             ind.fitness.values = toolbox.evaluate(ind)
@@ -408,8 +446,6 @@ def custom_eaMuPlusLambda(
     halloffame: tools.ParetoFront, activation: str,
     output_dir: Path, env_details: str,
 ) -> None:
-    """Executes the EA block with generation-level checkpointing."""
-    # ---- Generation 0 -----------------------------------------------------
     invalid_ind = [ind for ind in population if not ind.fitness.valid]
     _evaluate_invalid(invalid_ind, toolbox, desc=f"[{activation.upper()}] Gen 0 init")
 
@@ -420,7 +456,6 @@ def custom_eaMuPlusLambda(
         is_checkpoint=True, gen=0,
     )
 
-    # ---- Generations 1..G -------------------------------------------------
     with tqdm(total=config.generations,
               desc=f"[{activation.upper()}] Evolutions", unit="gen") as pbar:
         for gen in range(1, config.generations + 1):
@@ -449,76 +484,182 @@ def custom_eaMuPlusLambda(
             pbar.update(1)
 
 
-# =============================================================================
-# 7. ORCHESTRATION ENGINE
-# =============================================================================
-
 def run_gp_for_activation(
-    activation: str, manager: DatasetManager, toolbox: base.Toolbox,
-    config: MOGPConfig, output_dir: Path, env_details: str,
-) -> Path:
-    """Runs one full GP cycle for a single activation.
+    activation: str, topology: str, manager: DatasetManager, toolbox: base.Toolbox,
+    config: MOGPConfig, output_dir: Path, env_details: str, run_seed: int, run_index: int,
+) -> "tools.ParetoFront":
+    """Execute one GP run for a single (topology, activation, seed) triple.
 
-    The trainer pool is local to this function call — its lifetime exactly
-    matches the GA cycle for ``activation``. Garbage-collected on return.
+    Args:
+        activation: Activation token.
+        topology: FNN topology token (overrides ``config.topology`` for this run).
+        manager: Loaded ``DatasetManager``.
+        toolbox: Pre-built DEAP toolbox.
+        config: Runtime configuration.
+        output_dir: Target output directory for per-run artifacts.
+        env_details: System environment block.
+        run_seed: The random seed for THIS run.
+        run_index: 1-based index of THIS run (1..N).
 
     Returns:
-        Path to the final exported Pareto-front artifact.
+        The final hall-of-fame (Pareto front for Plan A, top-K front for Plan B).
+        Persists the per-run artifact to ``output_dir / per_run_archive / ...``.
     """
-    trainer_pool: Dict[int, FNNTrainer] = {}
+    # Reseed all RNGs at the entry of this run so populations differ per seed.
+    seed_runtime(run_seed)
+    torch.manual_seed(run_seed)
 
-    # Late binding: re-register evaluate with this activation's trainer pool.
-    toolbox.register(
-        "evaluate", evaluate_rule,
-        manager=manager, activation=activation, toolbox=toolbox,
-        config=config, trainer_pool=trainer_pool,
-    )
+    # Patch config.topology for the duration of this run so FNNTrainer
+    # constructs the correct topology. Restored before return.
+    saved_topology = config.topology
+    config.topology = topology
+    try:
+        trainer_pool: Dict[int, FNNTrainer] = {}
+        toolbox.register(
+            "evaluate", evaluate_rule,
+            manager=manager, activation=activation, toolbox=toolbox,
+            config=config, trainer_pool=trainer_pool,
+        )
+        population = toolbox.population(n=config.population_size)
+        hall_of_fame = tools.ParetoFront()
 
-    population = toolbox.population(n=config.population_size)
-    hall_of_fame = tools.ParetoFront()
+        custom_eaMuPlusLambda(
+            population, toolbox, config, hall_of_fame, activation,
+            output_dir, env_details,
+        )
 
-    custom_eaMuPlusLambda(
-        population, toolbox, config, hall_of_fame, activation,
-        output_dir, env_details,
-    )
+        # Persist per-run artifact (archive subdirectory).
+        export_pareto_rules(
+            hall_of_fame=hall_of_fame, activation=activation, config=config,
+            output_dir=output_dir, env_details=env_details, top_k=10,
+            is_checkpoint=False, topology=topology, run_index=run_index,
+        )
 
-    final_path = export_pareto_rules(
-        hall_of_fame=hall_of_fame, activation=activation, config=config,
-        output_dir=output_dir, env_details=env_details, top_k=10,
-        is_checkpoint=False,
-    )
+        trainer_pool.clear()
+        return hall_of_fame
+    finally:
+        config.topology = saved_topology
 
-    # Explicit pool teardown — releases ~20 FNN model graphs per activation.
-    trainer_pool.clear()
-    return final_path
+
+def aggregate_consensus_front(
+    per_run_fronts: List["tools.ParetoFront"], config: MOGPConfig,
+) -> List:
+    """Aggregate N per-run Pareto fronts into a single consensus front.
+
+    Algorithm:
+        1. Collect all unique individuals (deduplicated by exact string repr).
+        2. For each unique rule, compute its mean fitness across the runs in
+           which it appeared (Plan A: per-objective mean; Plan B: scalar mean).
+        3. Apply non-dominated sorting (Plan A) or scalar sort (Plan B) to
+           obtain the consensus first-front / top-K.
+
+    Returns:
+        Sorted list of consensus individuals (best first), of length at most
+        equal to the union-of-runs size.
+    """
+    seen: Dict[str, Dict] = {}
+    for front in per_run_fronts:
+        for ind in front:
+            key = str(ind)
+            if key not in seen:
+                seen[key] = {"individual": ind, "fitnesses": []}
+            seen[key]["fitnesses"].append(tuple(ind.fitness.values))
+
+    if not seen:
+        return []
+
+    # Build consensus population: one Individual per unique string with the
+    # per-objective mean fitness across runs it appeared in.
+    consensus: List = []
+    for entry in seen.values():
+        # Clone the prototype Individual to avoid mutating the original.
+        proto = entry["individual"]
+        cloned = creator.Individual(proto)
+        per_obj = list(zip(*entry["fitnesses"]))  # transpose
+        mean_fit = tuple(float(np.mean(o)) for o in per_obj)
+        cloned.fitness.values = mean_fit
+        consensus.append(cloned)
+
+    if config.use_plan_b_soo:
+        # SOO: descending scalar fitness (weight = +1).
+        consensus.sort(key=lambda c: c.fitness.values[0], reverse=True)
+        return consensus
+
+    # Plan A: NSGA-II first non-dominated front, then descending accuracy.
+    first_front = tools.sortNondominated(
+        consensus, len(consensus), first_front_only=True,
+    )[0]
+    first_front.sort(key=lambda c: c.fitness.values[0], reverse=True)
+    return first_front
 
 
 def seed_runtime(seed: int) -> None:
-    """Reseeds Python and NumPy RNGs. PyTorch is reseeded per-evaluation."""
+    """Resets Python's RNG and NumPy's RNG. PyTorch seeded separately per eval."""
     random.seed(seed)
     np.random.seed(seed)
 
 
 def configure_torch_threads(config: MOGPConfig) -> None:
-    """Pins PyTorch thread counts before any tensor ops execute.
-
-    Mathematical Notes:
-        For shallow MLPs the gemm sizes (~64x64) sit below the threshold
-        where intra-op parallelism beats single-thread vector code. We cap
-        intra_op at ``config.num_threads`` and pin inter_op to 1 to avoid
-        OMP-vs-thread-pool oversubscription on Windows.
-    """
+    """Pin PyTorch thread counts before any tensor ops execute."""
     torch.set_num_threads(min(config.num_threads, os.cpu_count() or config.num_threads))
     try:
         torch.set_num_interop_threads(1)
     except RuntimeError:
-        # set_num_interop_threads can only be called before parallel work starts.
         pass
 
 
+def _parse_cli_overrides(config: MOGPConfig) -> MOGPConfig:
+    """Optional CLI overrides for topology/activation/run subsets and Plan B.
+
+    Lets the user pre-flight subsets without editing the script:
+        python MOD6_om_mogp_engine_final.py \\
+            --topologies shallow \\
+            --activations rectification \\
+            --n_runs 1 \\
+            [--use_plan_b_soo]
+    With no CLI arguments, the full sweep defined by MOGPConfig defaults runs.
+    """
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="MOD6 MOGP discovery engine (multi-topology, multi-seed).",
+    )
+    parser.add_argument("--topologies", type=str, nargs="+", default=None)
+    parser.add_argument("--activations", type=str, nargs="+", default=None)
+    parser.add_argument("--n_runs", type=int, default=None)
+    parser.add_argument(
+        "--use_plan_b_soo", action="store_true",
+        help="Switch to Plan B single-objective SOO (tournament selection, scalar fitness).",
+    )
+    args, _unknown = parser.parse_known_args()
+
+    if args.topologies is not None:
+        config.topology_targets = args.topologies
+    if args.activations is not None:
+        config.activation_functions = args.activations
+    if args.n_runs is not None:
+        config.n_gp_runs = args.n_runs
+    if args.use_plan_b_soo:
+        config.use_plan_b_soo = True
+
+    return config
+
+
 def main() -> None:
-    """Top-level entry point for the MOGP meta-grid search."""
+    """Full sweep across (topology, activation, run-seed) triples.
+
+    Outer loop:  topology  in config.topology_targets       (default 3)
+    Middle loop: activation in config.activation_functions  (default 6)
+    Inner loop:  run_idx    in 1..config.n_gp_runs           (default 3)
+
+    For each (topology, activation), the N per-run Pareto fronts are
+    aggregated via ``aggregate_consensus_front`` into the consensus front
+    written as the canonical artifact in the rule directory; per-run
+    intermediates are archived under ``per_run_archive/``.
+    """
     config = MOGPConfig()
+    config = _parse_cli_overrides(config)
+
     configure_torch_threads(config)
     env_details = get_system_environment(config)
     output_dir = get_generated_directory()
@@ -534,27 +675,53 @@ def main() -> None:
     print("\n--- Commencing Module 6 MOGP Meta-Grid Search ---")
     print(env_details)
     print(f"Target Checkpoint / Export Directory: {output_dir}")
-    print(f"Activation Functions: {', '.join(config.activation_functions)}")
+    print(f"Topologies:    {', '.join(config.topology_targets)}")
+    print(f"Activations:   {', '.join(config.activation_functions)}")
+    print(f"GP Runs/pair:  {config.n_gp_runs} (seeds: {config.gp_run_seeds[:config.n_gp_runs]})")
+    print(f"Mode:          {'Plan B SOO' if config.use_plan_b_soo else 'Plan A Pareto'}")
 
     total_evals = (
         config.population_size
         * config.generations
         * config.datasets_per_rule
         * len(config.activation_functions)
+        * len(config.topology_targets)
+        * config.n_gp_runs
     )
     print(f"Approx. Cumulative PyTorch CPU Evaluations: {total_evals:,}")
 
     exported_files: List[Path] = []
-    for activation in config.activation_functions:
-        seed_runtime(config.random_seed)
-        output_path = run_gp_for_activation(
-            activation=activation, manager=manager, toolbox=toolbox,
-            config=config, output_dir=output_dir, env_details=env_details,
-        )
-        exported_files.append(output_path)
+
+    for topology in config.topology_targets:
+        for activation in config.activation_functions:
+            print(f"\n========== ({topology.upper()} / {activation.upper()}) ==========")
+            per_run_fronts: List = []
+
+            for run_index in range(1, config.n_gp_runs + 1):
+                run_seed = config.gp_run_seeds[run_index - 1]
+                print(f"--- Run {run_index}/{config.n_gp_runs} (seed={run_seed}) ---")
+                front = run_gp_for_activation(
+                    activation=activation, topology=topology,
+                    manager=manager, toolbox=toolbox,
+                    config=config, output_dir=output_dir,
+                    env_details=env_details,
+                    run_seed=run_seed, run_index=run_index,
+                )
+                per_run_fronts.append(front)
+
+            # Aggregate into consensus front and write the canonical artifact.
+            consensus = aggregate_consensus_front(per_run_fronts, config)
+            print(f"Consensus front size: {len(consensus)} unique rules")
+
+            consensus_path = export_pareto_rules(
+                hall_of_fame=consensus, activation=activation, config=config,
+                output_dir=output_dir, env_details=env_details, top_k=10,
+                is_checkpoint=False, topology=topology, run_index=None,
+            )
+            exported_files.append(consensus_path)
 
     print("\n--- MODULE 6 MOGP META-GRID SEARCH COMPLETE ---")
-    print("Final Discovered Rule Artifacts:")
+    print("Final Consensus Artifacts:")
     for path in exported_files:
         print(f" - {path.name}")
 

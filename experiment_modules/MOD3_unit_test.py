@@ -80,3 +80,63 @@ def test_tensor_typing_constraints():
     assert y_encoded.dtype == np.int64
     y_tensor = torch.tensor(y_encoded, dtype=torch.long)
     assert y_tensor.dtype == torch.int64
+
+
+def test_normalization_params_path_built(tmp_path):
+    """Q-D: the cache config exposes a norm_params_path under generated_files/."""
+    cfg = mod3.CacheConfig(module_dir=str(tmp_path))
+    expected = os.path.join(str(tmp_path), "generated_files",
+                            "meta_feature_normalization_params.csv")
+    assert cfg.norm_params_path == expected
+
+
+def test_load_normalization_params_applies_z_score(tmp_path):
+    """
+    Q-D: When a normalization-params CSV exists, ``_load_normalization_params``
+    populates the per-feature (mean, std) arrays in canonical order. The
+    transform applied at cache time is exact z-score using those arrays.
+    """
+    cfg = mod3.CacheConfig(module_dir=str(tmp_path))
+    os.makedirs(cfg.generated_dir, exist_ok=True)
+
+    feature_cols = [
+        "n_d_ratio", "feat_kurtosis", "iqr_dev", "pc_eigen",
+        "target_entropy", "hopkins", "silhouette", "davies_bouldin"
+    ]
+    # Construct deterministic normalization params: mean=j+1, std=1 for j in 0..7.
+    norm_df = pd.DataFrame({
+        "feature": feature_cols,
+        "mean": [float(i + 1) for i in range(8)],
+        "std": [1.0] * 8,
+    })
+    norm_df.to_csv(cfg.norm_params_path, index=False)
+
+    manager = mod3.DatasetManager(cfg)
+    manager._load_normalization_params()
+
+    assert manager._norm_params_loaded is True
+    np.testing.assert_allclose(
+        manager._norm_mean, np.array([1, 2, 3, 4, 5, 6, 7, 8], dtype=np.float32)
+    )
+    np.testing.assert_allclose(manager._norm_std, np.ones(8, dtype=np.float32))
+
+    # Z-score check: an input vector matching the means returns the zero vector.
+    raw = np.array([1, 2, 3, 4, 5, 6, 7, 8], dtype=np.float32)
+    z = (raw - manager._norm_mean) / manager._norm_std
+    np.testing.assert_allclose(z, np.zeros(8, dtype=np.float32))
+
+
+def test_load_normalization_params_graceful_fallback(tmp_path):
+    """
+    Q-D backward compat: when the normalization params file is absent, the
+    manager logs a warning and stays in legacy raw mode (identity transform).
+    """
+    cfg = mod3.CacheConfig(module_dir=str(tmp_path))
+    # Do NOT write any normalization CSV.
+    manager = mod3.DatasetManager(cfg)
+    manager._load_normalization_params()
+
+    assert manager._norm_params_loaded is False
+    # Defaults: mean=0, std=1 → identity transform.
+    np.testing.assert_allclose(manager._norm_mean, np.zeros(8, dtype=np.float32))
+    np.testing.assert_allclose(manager._norm_std, np.ones(8, dtype=np.float32))

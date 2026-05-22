@@ -1,16 +1,25 @@
 """
-Module 7 Driver: Pipeline Matrix Orchestrator.
+Module 7 Driver: Pipeline Matrix Orchestrator - **PROTOTYPE**.
 
-Scans the configured rule directory for ``Final_Discovered_Rules_*.txt``
-artifacts (most-recent timestamp per activation), extracts equations via
-regex, and pipelines them into ``MOD7_framework_validation_matrix.py`` as
-subprocess invocations.
+A scaled-down derivative of MOD7_pipeline_driver.py used for pre-flight
+pipeline validation. Differs from the production driver in only two
+respects:
 
-Default rule directory: ``generated_files/GA_rule_files_testing/``. Override
-with ``--rule_directory PATH`` when running against real production rules
-(``GA_rule_files/``) or any other location.
+    1. Target script: invokes ``MOD7_framework_validation_matrix_prototype.py``
+       (always quick: 1 seed x 5 Phase B datasets, ~10-20 min total) instead
+       of the production framework.
 
-Forwards ``--quick_test`` to MOD7 so MSTR3 can request a fast pipeline check.
+    2. No ``--quick_test`` flag is exposed or forwarded — the prototype
+       framework is unconditionally quick by design.
+
+Default rule directory: ``generated_files/GA_rule_files_testing/`` (same as
+production driver, since MOD5 prototype writes there). Override with
+``--rule_directory PATH`` if testing against alternate fixture sets.
+
+The (topology x activation) sweep iterates the same 18 cells as the
+production driver. Output JSONs are written to
+``MOD7_validation_matrix_prototype/`` rather than the production reports
+directory, keeping prototype artifacts cleanly separated.
 """
 
 from __future__ import annotations
@@ -67,9 +76,12 @@ class DriverMatrixConfig(BaseModel):
     )
     topology_targets: List[str] = Field(
         default=["shallow", "deep_narrow", "funnel"],
-        description="Topologies to sweep. Each (topology, activation) pair gets one MOD7 subprocess.",
+        description="Topologies to sweep. Each (topology, activation) pair gets one subprocess.",
     )
-    target_script: str = Field(default="MOD7_framework_validation_matrix.py")
+    target_script: str = Field(
+        default="MOD7_framework_validation_matrix_prototype.py",
+        description="The PROTOTYPE framework, always quick (1 seed x 5 datasets).",
+    )
     module_directory: Path = Field(
         default_factory=lambda: Path(__file__).resolve().parent
     )
@@ -77,7 +89,9 @@ class DriverMatrixConfig(BaseModel):
     activation_targets: List[str] = Field(
         default=["rectification", "squashing", "smooth", "aggregation", "trigonometric", "linear"]
     )
-    quick_test: bool = Field(default=False)
+    # quick_test field intentionally removed: the prototype framework is
+    # unconditionally quick. Use the production driver if a configurable
+    # scale is needed.
 
     class Config:
         arbitrary_types_allowed = True
@@ -153,18 +167,20 @@ class PipelineDriver:
     # -------------------------------------------------------------------------
 
     def execute_matrix_sweep(self) -> None:
-        """Iterates (topology, activation) pairs, dispatches one MOD7 subprocess per pair.
+        """Iterates (topology, activation) pairs, dispatches one PROTOTYPE
+        framework subprocess per pair.
 
         Returns:
             None. Logs progress and failures per (topology, activation) cell.
         """
         script_target = str(self.cfg.module_directory / self.cfg.target_script)
 
+        logger.info(f"--- MOD7 PROTOTYPE DRIVER ---")
         logger.info(f"Reading rules from: {self.cfg.rule_directory}")
+        logger.info(f"Target framework:   {self.cfg.target_script}")
         logger.info(f"Topologies sweep:   {', '.join(self.cfg.topology_targets)}")
         logger.info(f"Activations sweep:  {', '.join(self.cfg.activation_targets)}")
-        if self.cfg.quick_test:
-            logger.info("MODE: QUICK_TEST — propagating --quick_test to MOD7.")
+        logger.info("Scale:              PROTOTYPE (1 seed x 5 Phase B datasets per cell)")
 
         for topology in self.cfg.topology_targets:
             for activation in self.cfg.activation_targets:
@@ -182,8 +198,7 @@ class PipelineDriver:
                     "--topology", topology,
                     "--activation", activation,
                 ]
-                if self.cfg.quick_test:
-                    cmd_tokens.append("--quick_test")
+                # No --quick_test forwarding: prototype framework is always quick.
                 cmd_tokens.append("--rule_strs")
                 cmd_tokens.extend(rules)
 
@@ -199,7 +214,7 @@ class PipelineDriver:
                         f"(exit code {sub_err.returncode})."
                     )
 
-        logger.info("--- ALL (TOPOLOGY x ACTIVATION) SECTORS COMPLETE ---")
+        logger.info("--- ALL (TOPOLOGY x ACTIVATION) PROTOTYPE SECTORS COMPLETE ---")
 
 
 # =============================================================================
@@ -207,10 +222,11 @@ class PipelineDriver:
 # =============================================================================
 
 def main() -> None:
-    """CLI entry point. Parses ``--rule_directory``, ``--quick_test``, ``--topologies``."""
+    """CLI entry point. Parses ``--rule_directory`` and ``--topologies``."""
     parser = argparse.ArgumentParser(
-        description="MOD7 Driver: dispatches the framework validation matrix per "
-                    "(topology, activation) pair.",
+        description="MOD7 PROTOTYPE Driver: dispatches the prototype framework "
+                    "(1 seed x 5 datasets) per (topology, activation) pair. "
+                    "Use the production driver for paper-grade validation runs.",
     )
     parser.add_argument(
         "--rule_directory", type=str, default=None,
@@ -222,13 +238,11 @@ def main() -> None:
         choices=["shallow", "deep_narrow", "funnel"],
         help="Subset of topologies to sweep. Default: all three.",
     )
-    parser.add_argument(
-        "--quick_test", action="store_true",
-        help="Forwarded to MOD7: collapse to 1 seed × 5 Phase B datasets.",
-    )
+    # No --quick_test flag: this driver always runs the prototype framework,
+    # which is unconditionally quick.
     args = parser.parse_args()
 
-    overrides = {"quick_test": args.quick_test}
+    overrides = {}
     if args.topologies is not None:
         overrides["topology_targets"] = args.topologies
     if args.rule_directory is not None:

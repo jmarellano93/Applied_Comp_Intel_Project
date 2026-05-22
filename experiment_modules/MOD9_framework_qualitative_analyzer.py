@@ -46,8 +46,17 @@ from MOD3_pm_dataset_manager import CacheConfig, DatasetManager
 # 1. CONFIGURATION & PATHING
 # =============================================================================
 
-# Regex anchors the activation token (group 1) in filenames like
-# "Final_Discovered_Rules_<activation>_<YYYYMMDD>_<HHMM>.txt".
+# Regex anchors the activation token (group 1) and topology token (group 2)
+# in filenames produced by MOD6 of the form:
+#     Final_Discovered_Rules_<activation>_<topology>_<YYYYMMDD>(_<HHMM>)?.txt
+# Topology is constrained to the three known values so the trailing timestamp
+# segment can never be ambiguously absorbed into the topology token.
+_ACTIVATION_TOPOLOGY_FROM_FILENAME = re.compile(
+    r"^Final_Discovered_Rules_([a-zA-Z]+)_(shallow|deep_narrow|funnel)_\d+(?:_\d+)?\.txt$"
+)
+
+# Retain the old single-capture regex for backward compatibility with legacy
+# rule files that lack a topology token (pre Q-G era artifacts).
 _ACTIVATION_FROM_FILENAME = re.compile(
     r"^Final_Discovered_Rules_([a-zA-Z]+)_\d+(?:_\d+)?\.txt$"
 )
@@ -271,11 +280,19 @@ class QualitativeAnalyzer:
     # -------------------------------------------------------------------------
 
     def _emit_derivatives_text(
-        self, expr: sp.Expr, activation: str, rank: int,
+        self, expr: sp.Expr, activation: str, topology: str, rank: int,
     ) -> None:
-        """Writes the analytical derivatives text artifact for one rank."""
+        """Writes the analytical derivatives text artifact for one rank.
+
+        Args:
+            expr: SymPy expression of the rule.
+            activation: Activation token.
+            topology: Topology token ('shallow', 'deep_narrow', 'funnel', or
+                'legacy' for pre-Q-G rule files).
+            rank: 1-based Pareto rank.
+        """
         lines: List[str] = [
-            f"QUALITATIVE ANALYSIS: {activation.upper()} — Rank {rank}",
+            f"QUALITATIVE ANALYSIS: {activation.upper()} / {topology} — Rank {rank}",
             f"Equation: {expr}",
             "",
             "Empirical Partial Derivatives:",
@@ -290,16 +307,22 @@ class QualitativeAnalyzer:
 
         out_path = (
             self.cfg.reports_dir
-            / f"Analytical_Derivatives_{activation}_Rank{rank}.txt"
+            / f"Analytical_Derivatives_{activation}_{topology}_Rank{rank}.txt"
         )
         with open(out_path, "w", encoding="utf-8") as fh:
             fh.write("\n".join(lines))
 
     def _emit_sensitivity_curve(
-        self, expr: sp.Expr, sym_x: sp.Symbol, activation: str, rank: int,
+        self, expr: sp.Expr, sym_x: sp.Symbol,
+        activation: str, topology: str, rank: int,
     ) -> None:
-        """1-D sensitivity curve when the rule has exactly one free symbol."""
-        x_vals = np.linspace(0.1, 1.0, 100)
+        """1-D sensitivity curve for a single-symbol rule.
+
+        Post-normalisation, meta-feature values are z-scored. We plot the
+        sensitivity over the symmetric range [-2, +2] standard deviations,
+        which covers ~95% of the Phase A meta-feature distribution.
+        """
+        x_vals = np.linspace(-2.0, 2.0, 100)
         f_lamb = sp.lambdify(sym_x, expr, "numpy")
         y_vals = f_lamb(x_vals)
         if isinstance(y_vals, (float, int)):
@@ -307,13 +330,14 @@ class QualitativeAnalyzer:
 
         plt.figure(figsize=(8, 6))
         plt.plot(x_vals, y_vals, color="blue", linewidth=2)
-        plt.title(f"Sensitivity Curve: {activation.upper()} — Rank {rank}")
-        plt.xlabel(sym_x.name)
+        plt.title(f"Sensitivity Curve: {activation.upper()} / {topology} — Rank {rank}")
+        plt.xlabel(f"{sym_x.name} (z-score)")
         plt.ylabel(r"Optimal Variance ($\sigma^2$)")
         plt.grid(True)
         plt.tight_layout()
         plt.savefig(
-            self.cfg.vis_dir / f"Sensitivity_Curve_{activation}_Rank{rank}.png",
+            self.cfg.vis_dir
+            / f"Sensitivity_Curve_{activation}_{topology}_Rank{rank}.png",
             dpi=300,
         )
         plt.close()
@@ -324,9 +348,13 @@ class QualitativeAnalyzer:
         present_symbols: List[sp.Symbol],
         dominant_syms: List[sp.Symbol],
         activation: str,
+        topology: str,
         rank: int,
     ) -> None:
-        """2-D asymptotic surface with non-dominant features pinned at empirical means."""
+        """2-D asymptotic surface with non-dominant features pinned at empirical means.
+
+        Surface coordinates span the z-score range [-2, +2] for both axes.
+        """
         sym_x, sym_y = dominant_syms[0], dominant_syms[1]
         subs_dict = {
             sym: self.empirical_means[sym]
@@ -335,8 +363,8 @@ class QualitativeAnalyzer:
         expr_2d = expr.subs(subs_dict)
 
         res = self.cfg.surface_resolution
-        X_vals = np.linspace(0.1, 1.0, res)
-        Y_vals = np.linspace(0.1, 1.0, res)
+        X_vals = np.linspace(-2.0, 2.0, res)
+        Y_vals = np.linspace(-2.0, 2.0, res)
         X_mesh, Y_mesh = np.meshgrid(X_vals, Y_vals)
 
         f_lamb = sp.lambdify((sym_x, sym_y), expr_2d, "numpy")
@@ -350,22 +378,27 @@ class QualitativeAnalyzer:
             X_mesh, Y_mesh, Z_mesh, cmap="viridis", edgecolor="none", alpha=0.9,
         )
 
-        ax.set_title(f"Asymptotic Topography: {activation.upper()} — Rank {rank}")
-        ax.set_xlabel(sym_x.name)
-        ax.set_ylabel(sym_y.name)
+        ax.set_title(
+            f"Asymptotic Topography: {activation.upper()} / {topology} — Rank {rank}"
+        )
+        ax.set_xlabel(f"{sym_x.name} (z-score)")
+        ax.set_ylabel(f"{sym_y.name} (z-score)")
         ax.set_zlabel(r"Variance ($\sigma^2$)")
         fig.colorbar(surf, ax=ax, shrink=0.5, aspect=5, label="Variance Magnitude")
 
         plt.tight_layout()
         plt.savefig(
-            self.cfg.vis_dir / f"Asymptotic_Surface_{activation}_Rank{rank}.png",
+            self.cfg.vis_dir
+            / f"Asymptotic_Surface_{activation}_{topology}_Rank{rank}.png",
             dpi=300,
         )
         plt.close()
 
-    def analyze_rank(self, expr: sp.Expr, activation: str, rank: int) -> None:
-        """Emits all artifacts for a single (activation, rank) pair."""
-        self._emit_derivatives_text(expr, activation, rank)
+    def analyze_rank(
+        self, expr: sp.Expr, activation: str, topology: str, rank: int,
+    ) -> None:
+        """Emits all artifacts for a single (activation, topology, rank) triple."""
+        self._emit_derivatives_text(expr, activation, topology, rank)
 
         present_symbols = list(expr.free_symbols)
         if not present_symbols:
@@ -375,10 +408,13 @@ class QualitativeAnalyzer:
         dominant_syms = self.identify_dominant_features(expr)
 
         if len(dominant_syms) == 1:
-            self._emit_sensitivity_curve(expr, dominant_syms[0], activation, rank)
+            self._emit_sensitivity_curve(
+                expr, dominant_syms[0], activation, topology, rank,
+            )
         elif len(dominant_syms) >= 2:
             self._emit_asymptotic_surface(
-                expr, present_symbols, dominant_syms, activation, rank,
+                expr, present_symbols, dominant_syms,
+                activation, topology, rank,
             )
 
     def analyze_activation_family(self, filepath: Path) -> None:
@@ -386,17 +422,31 @@ class QualitativeAnalyzer:
 
         Args:
             filepath: Path to a ``Final_Discovered_Rules_*.txt`` artifact.
+                Filename is expected to encode both the activation and the
+                topology; the legacy single-token form is supported with a
+                topology fallback for backward compatibility.
 
         Returns:
-            None. Writes one TXT + one PNG per rank.
+            None. Writes one TXT + one PNG per (activation, topology, rank).
         """
-        match = _ACTIVATION_FROM_FILENAME.match(filepath.name)
-        if not match:
-            print(f"Could not extract activation from filename: {filepath.name}")
-            return
-        activation = match.group(1)
+        # Preferred: (activation, topology) form from the new MOD6 outputs.
+        match = _ACTIVATION_TOPOLOGY_FROM_FILENAME.match(filepath.name)
+        if match:
+            activation = match.group(1)
+            topology = match.group(2)
+        else:
+            # Legacy fallback: pre-Q-G files with only an activation token.
+            legacy = _ACTIVATION_FROM_FILENAME.match(filepath.name)
+            if not legacy:
+                print(f"Could not extract activation/topology from filename: {filepath.name}")
+                return
+            activation = legacy.group(1)
+            topology = "legacy"
 
-        print(f"\nAnalyzing [{activation.upper()}] across up to {self.cfg.max_ranks} ranks")
+        print(
+            f"\nAnalyzing [{activation.upper()} / {topology}] "
+            f"across up to {self.cfg.max_ranks} ranks"
+        )
 
         rule_strings = self.engine.extract_all_rules(filepath, self.cfg.max_ranks)
         if not rule_strings:
@@ -410,7 +460,7 @@ class QualitativeAnalyzer:
                 print(f"  Rank {rank_idx} parse error: {exc}")
                 continue
 
-            self.analyze_rank(expr, activation, rank_idx)
+            self.analyze_rank(expr, activation, topology, rank_idx)
             print(f"  Rank {rank_idx} processed: {expr}")
 
     def run(self) -> None:

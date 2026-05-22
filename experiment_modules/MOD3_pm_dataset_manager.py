@@ -44,6 +44,7 @@ class CacheConfig(BaseModel):
     dataset_dir: str = ""
     metadata_path: str = ""
     log_path: str = ""
+    norm_params_path: str = ""
 
     test_size: float = Field(default=0.2, description="Validation split ratio (80/20).")
     random_seed: int = Field(default=42, description="Seed for deterministic stratification and splitting.")
@@ -54,6 +55,10 @@ class CacheConfig(BaseModel):
         self.dataset_dir = os.path.join(self.module_dir, "openml_cc18_datasets")
         self.metadata_path = os.path.join(self.generated_dir, self.phase_csv_name)
         self.log_path = os.path.join(self.generated_dir, "openml_cc18_download_log.csv")
+        # Normalization params are produced by MOD2 from Phase A only and consumed here.
+        self.norm_params_path = os.path.join(
+            self.generated_dir, "meta_feature_normalization_params.csv"
+        )
         return self
 
 
@@ -63,6 +68,11 @@ class DatasetManager:
         self.dataset_cache: Dict[int, Dict[str, torch.Tensor]] = {}
         self.meta_features_cache: Dict[int, torch.Tensor] = {}
         self._target_mapping = self._build_target_mapping()
+        # Z-score normalizer parameters (mean, std per feature). Populated from
+        # disk by _load_normalization_params if MOD2 has produced them.
+        self._norm_mean: np.ndarray = np.zeros(8, dtype=np.float32)
+        self._norm_std: np.ndarray = np.ones(8, dtype=np.float32)
+        self._norm_params_loaded: bool = False
 
     def _build_target_mapping(self) -> Dict[int, str]:
         if not os.path.exists(self.cfg.log_path):
@@ -71,6 +81,49 @@ class DatasetManager:
 
         log_df = pd.read_csv(self.cfg.log_path)
         return dict(zip(log_df['did'], log_df['target']))
+
+    # =============================================================================
+    # FUNCTIONAL BLOCK: Normalization Parameter Loading
+    # 4A) WHAT IT DOES: Reads MOD2-produced normalization params (per-feature
+    #     mean, std fit on Phase A only) and stores them as instance arrays.
+    # 4B) PARAMETERS: None (uses self.cfg.norm_params_path).
+    # 4C) METHODOLOGICAL JUSTIFICATION: Applying identical (mean, std) to both
+    #     Phase A and Phase B at cache load time guarantees the GP terminal-set
+    #     values seen during discovery match those seen during validation
+    #     under the same affine transform, with fit parameters derived from
+    #     Phase A only (no distributional leakage). When the params file is
+    #     absent the manager falls back to raw values with a warning, preserving
+    #     compatibility with legacy rule artifacts produced before normalization
+    #     was introduced.
+    # =============================================================================
+    def _load_normalization_params(self) -> None:
+        if not os.path.exists(self.cfg.norm_params_path):
+            logger.warning(
+                f"Normalization params not found at {self.cfg.norm_params_path}. "
+                "Falling back to RAW meta-features (legacy mode). "
+                "Run MOD2 to regenerate normalization parameters."
+            )
+            return
+
+        try:
+            norm_df = pd.read_csv(self.cfg.norm_params_path)
+            feature_order = [
+                "n_d_ratio", "feat_kurtosis", "iqr_dev", "pc_eigen",
+                "target_entropy", "hopkins", "silhouette", "davies_bouldin"
+            ]
+            # Sort by canonical feature order to guarantee alignment.
+            norm_df = norm_df.set_index("feature").loc[feature_order].reset_index()
+            self._norm_mean = norm_df["mean"].values.astype(np.float32)
+            self._norm_std = norm_df["std"].values.astype(np.float32)
+            self._norm_params_loaded = True
+            logger.info(
+                f"Loaded z-score normalization params from {self.cfg.norm_params_path}."
+            )
+        except Exception as e:
+            logger.error(
+                f"Failed to load normalization params ({e}); reverting to raw values."
+            )
+            self._norm_params_loaded = False
 
     def find_local_dataset_file(self, did: int) -> str:
         pattern = os.path.join(self.cfg.dataset_dir, f"{did}_*.csv")
@@ -152,6 +205,9 @@ class DatasetManager:
         if not os.path.exists(self.cfg.metadata_path):
             raise FileNotFoundError(f"Partition file missing: {self.cfg.metadata_path}")
 
+        # Load normalization params produced by MOD2 (Phase-A-only fit).
+        self._load_normalization_params()
+
         metadata_df = pd.read_csv(self.cfg.metadata_path)
         logger.info(f"Initiating RAM cache sequence for {len(metadata_df)} datasets...")
 
@@ -188,11 +244,20 @@ class DatasetManager:
                     "y_val": torch.tensor(y_val, dtype=torch.long)
                 }
 
-                self.meta_features_cache[did] = torch.tensor([
+                # Build raw 8-vector in canonical feature order, then apply
+                # Phase-A z-score transform if normalization params are loaded.
+                raw_vec = np.array([
                     row["n_d_ratio"], row["feat_kurtosis"], row["iqr_dev"],
                     row["pc_eigen"], row["target_entropy"], row["hopkins"],
                     row["silhouette"], row["davies_bouldin"]
-                ], dtype=torch.float32)
+                ], dtype=np.float32)
+
+                if self._norm_params_loaded:
+                    normalized_vec = (raw_vec - self._norm_mean) / self._norm_std
+                else:
+                    normalized_vec = raw_vec
+
+                self.meta_features_cache[did] = torch.tensor(normalized_vec, dtype=torch.float32)
 
             except Exception as e:
                 logger.error(f"Ingestion collapsed on Dataset {did}: {e}")

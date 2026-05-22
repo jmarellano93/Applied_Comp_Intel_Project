@@ -206,6 +206,41 @@ def partition_datasets(meta_df: pd.DataFrame, cfg: ExtractionConfig) -> Tuple[pd
     return phase_a_df, phase_b_df
 
 
+# =============================================================================
+# FUNCTIONAL BLOCK: Meta-Feature Normalization Persistence
+# 4A) WHAT IT DOES: Computes per-feature z-score normalization parameters
+#     (mean, std) using ONLY the Phase A discovery datasets, then persists them
+#     to disk so MOD3 can apply identical normalization to both phases at cache
+#     load time. Prevents distributional leakage from Phase B into the
+#     normalization parameters used during GP discovery.
+# 4B) PARAMETERS: phase_a_df (the Phase A subset only), cfg (for output path).
+# 4C) METHODOLOGICAL JUSTIFICATION: Fitting the normalizer on Phase A only
+#     guarantees that the GP terminal-set values during discovery and during
+#     Phase B validation share the SAME affine transform, with the transform's
+#     parameters derived solely from data the GP was permitted to observe.
+#     A small floor (1e-10) is added to each feature's std to prevent
+#     division-by-zero in the degenerate case of a constant Phase A column.
+# =============================================================================
+def persist_normalization_params(phase_a_df: pd.DataFrame, cfg: ExtractionConfig) -> None:
+    feature_cols = [
+        "n_d_ratio", "feat_kurtosis", "iqr_dev", "pc_eigen",
+        "target_entropy", "hopkins", "silhouette", "davies_bouldin"
+    ]
+    means = phase_a_df[feature_cols].mean(axis=0).values
+    stds = phase_a_df[feature_cols].std(axis=0, ddof=0).values
+    # Floor std at epsilon to prevent zero-division during transform.
+    stds = np.where(stds < cfg.epsilon, cfg.epsilon, stds)
+
+    norm_df = pd.DataFrame({
+        "feature": feature_cols,
+        "mean": means,
+        "std": stds,
+    })
+    norm_path = os.path.join(cfg.output_dir, "meta_feature_normalization_params.csv")
+    norm_df.to_csv(norm_path, index=False)
+    logger.info(f"Normalization params (fit on {len(phase_a_df)} Phase A datasets) -> {norm_path}")
+
+
 def execute_meta_pipeline(cfg: ExtractionConfig) -> None:
     os.makedirs(cfg.output_dir, exist_ok=True)
 
@@ -277,6 +312,9 @@ def execute_meta_pipeline(cfg: ExtractionConfig) -> None:
 
     phase_a.to_csv(path_a, index=False)
     phase_b.to_csv(path_b, index=False)
+
+    # CRITICAL: Fit normalizer on Phase A ONLY and persist params for MOD3 to load.
+    persist_normalization_params(phase_a, cfg)
 
     logger.info("--- PIPELINE METRICS EXPORTED ---")
     logger.info(f"Phase A (Discovery) Volume:  {len(phase_a)} datasets -> Saved to {path_a}")

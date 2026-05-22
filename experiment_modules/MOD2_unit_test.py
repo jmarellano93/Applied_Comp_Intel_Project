@@ -87,3 +87,66 @@ def test_centroid_partitioning():
     a_dids = set(phase_a["did"])
     b_dids = set(phase_b["did"])
     assert len(a_dids.intersection(b_dids)) == 0
+
+
+def test_persist_normalization_params_fits_on_phase_a_only(tmp_path):
+    """
+    Q-D guarantee: normalization parameters MUST be fit on Phase A only,
+    not on the entire pool. Verifies (mean, std) match phase_a_df statistics,
+    NOT statistics computed from a hypothetical full set, AND that the
+    output CSV is structurally well-formed.
+    """
+    cfg = mod2.ExtractionConfig(output_dir=str(tmp_path))
+
+    feature_cols = [
+        "n_d_ratio", "feat_kurtosis", "iqr_dev", "pc_eigen",
+        "target_entropy", "hopkins", "silhouette", "davies_bouldin"
+    ]
+    rng = np.random.default_rng(42)
+    # Phase A has 20 rows with controlled statistics.
+    phase_a_data = {col: rng.normal(loc=10.0, scale=2.0, size=20) for col in feature_cols}
+    phase_a_data["did"] = list(range(1, 21))
+    phase_a_data["name"] = [f"ds_{i}" for i in range(1, 21)]
+    phase_a_df = pd.DataFrame(phase_a_data)
+
+    mod2.persist_normalization_params(phase_a_df, cfg)
+
+    norm_path = tmp_path / "meta_feature_normalization_params.csv"
+    assert norm_path.exists(), "Normalization params CSV was not written."
+
+    norm_df = pd.read_csv(norm_path)
+    assert set(norm_df["feature"]) == set(feature_cols)
+    assert norm_df.shape == (8, 3)
+
+    # Spot-check: each (mean, std) matches Phase A pandas-computed values.
+    for col in feature_cols:
+        expected_mean = float(phase_a_df[col].mean())
+        expected_std = float(phase_a_df[col].std(ddof=0))
+        row = norm_df.loc[norm_df["feature"] == col].iloc[0]
+        assert row["mean"] == pytest.approx(expected_mean, rel=1e-6)
+        assert row["std"] == pytest.approx(expected_std, rel=1e-6)
+
+
+def test_persist_normalization_params_floors_zero_std(tmp_path):
+    """A degenerate constant Phase-A column gets floored to epsilon, not 0,
+    so the downstream z-score transform never divides by zero.
+    """
+    cfg = mod2.ExtractionConfig(output_dir=str(tmp_path), epsilon=1e-10)
+
+    feature_cols = [
+        "n_d_ratio", "feat_kurtosis", "iqr_dev", "pc_eigen",
+        "target_entropy", "hopkins", "silhouette", "davies_bouldin"
+    ]
+    rng = np.random.default_rng(0)
+    phase_a_data = {col: rng.normal(size=20) for col in feature_cols}
+    # Force one column (silhouette) to be constant to trigger the std floor.
+    phase_a_data["silhouette"] = np.zeros(20)
+    phase_a_data["did"] = list(range(1, 21))
+    phase_a_data["name"] = [f"ds_{i}" for i in range(1, 21)]
+    phase_a_df = pd.DataFrame(phase_a_data)
+
+    mod2.persist_normalization_params(phase_a_df, cfg)
+
+    norm_df = pd.read_csv(tmp_path / "meta_feature_normalization_params.csv")
+    silh_std = float(norm_df.loc[norm_df["feature"] == "silhouette", "std"].iloc[0])
+    assert silh_std >= cfg.epsilon, "Zero-std floor was not enforced."

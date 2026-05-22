@@ -188,6 +188,7 @@ class TestActivationFilenameRegex:
         ("Final_Discovered_Rules_linear_20260521.txt", "linear"),
     ])
     def test_extracts_activation_token(self, fname, expected):
+        """Legacy regex still matches pre-Q-G filenames (no topology token)."""
         match = mod9._ACTIVATION_FROM_FILENAME.match(fname)
         assert match is not None
         assert match.group(1) == expected
@@ -199,6 +200,41 @@ class TestActivationFilenameRegex:
     ])
     def test_rejects_non_matching_filenames(self, fname):
         assert mod9._ACTIVATION_FROM_FILENAME.match(fname) is None
+
+
+class TestActivationTopologyFilenameRegex:
+    """Q-G: new MOD6 consensus filenames embed both activation AND topology.
+
+    Format: Final_Discovered_Rules_<activation>_<topology>_<YYYYMMDD>(_<HHMM>)?.txt
+    where <topology> is one of {shallow, deep_narrow, funnel}.
+    """
+
+    @pytest.mark.parametrize("fname,expected_act,expected_top", [
+        ("Final_Discovered_Rules_rectification_shallow_20260521_1932.txt",
+         "rectification", "shallow"),
+        ("Final_Discovered_Rules_smooth_deep_narrow_20260521_1937.txt",
+         "smooth", "deep_narrow"),
+        ("Final_Discovered_Rules_trigonometric_funnel_20260521_1941.txt",
+         "trigonometric", "funnel"),
+        ("Final_Discovered_Rules_linear_shallow_20260521.txt",
+         "linear", "shallow"),
+    ])
+    def test_extracts_activation_and_topology(self, fname, expected_act, expected_top):
+        match = mod9._ACTIVATION_TOPOLOGY_FROM_FILENAME.match(fname)
+        assert match is not None
+        assert match.group(1) == expected_act
+        assert match.group(2) == expected_top
+
+    @pytest.mark.parametrize("fname", [
+        # Unknown topology must not match (regex is constrained to the 3 known).
+        "Final_Discovered_Rules_rectification_widefatnet_20260521_1932.txt",
+        # No topology token (legacy format) must not match the new regex.
+        "Final_Discovered_Rules_rectification_20260521_1932.txt",
+        # Checkpoint files have a different prefix.
+        "Checkpoint_smooth_shallow_Gen0.txt",
+    ])
+    def test_rejects_non_matching_filenames(self, fname):
+        assert mod9._ACTIVATION_TOPOLOGY_FROM_FILENAME.match(fname) is None
 
 
 # =============================================================================
