@@ -37,12 +37,17 @@ warnings.filterwarnings("ignore")
 # 4A) WHAT IT DOES: Establishes the massive computational dimensions required to
 #     explore the symbolic meta-feature space deeply enough to guarantee global optima.
 # 4B) PARAMETERS: population_size (150), generations (20), datasets_per_rule (20).
-# 4C) METHODOLOGICAL JUSTIFICATION: 150 individuals across 20 generations is the
-#     standard boundary constraint for Symbolic Regression (Koza, 1992) to avoid
-#     premature convergence. Training each across 20 distinct dataset topologies
-#     mathematically guarantees that discovered initialization heuristics are globally
-#     generalized across tabular data, not overfit to a single domain.
+# 4C) METHODOLOGICAL JUSTIFICATION: Because fitness evaluation requires full
+#     PyTorch neural network training, traditional GP population sizes (e.g., 500+)
+#     are computationally prohibitive. A population of 150 across 20 generations
+#     yields roughly 240,000 total PyTorch evaluations across the activation suite.
+#     To mitigate premature convergence in this restricted population, we rely on
+#     high mutation rates (30%) and NSGA-II multi-objective selection to artificially
+#     enforce genetic and topological diversity. Training each across 20 distinct
+#     dataset topologies mathematically guarantees that discovered initialization
+#     heuristics are globally generalized across tabular data, not overfit to a single domain.
 # =============================================================================
+
 class MOGPConfig(BaseModel):
     population_size: int = Field(default=150, gt=0)
     generations: int = Field(default=20, gt=0)
@@ -87,6 +92,14 @@ class MOGPConfig(BaseModel):
     plan_b_w_acc: float = Field(default=1.0, gt=0.0)
     plan_b_w_eps: float = Field(default=0.5, ge=0.0)
     plan_b_tournament_size: int = Field(default=3, ge=2)
+
+    # -------------------------------------------------------------------------
+    # Resume-on-restart safety: if a consensus artifact for a (topology,
+    # activation) pair already exists in the output directory, skip that pair
+    # by default. Set ``force_rerun=True`` (or pass ``--force_rerun``) to
+    # overwrite previously-computed pairs.
+    # -------------------------------------------------------------------------
+    force_rerun: bool = Field(default=False)
 
     num_threads: int = Field(default=4, ge=1)
     checkpoint_every_n_gen: int = Field(default=5, gt=0)
@@ -445,7 +458,25 @@ def custom_eaMuPlusLambda(
     population: List, toolbox: base.Toolbox, config: MOGPConfig,
     halloffame: tools.ParetoFront, activation: str,
     output_dir: Path, env_details: str,
+    topology: str = None, run_index: int = None,
 ) -> None:
+    """EA outer loop with per-generation checkpoints.
+
+    Args:
+        population: Initial population (Gen 0 individuals).
+        toolbox: DEAP toolbox with registered evaluate / mate / mutate / select.
+        config: Runtime configuration.
+        halloffame: A ``tools.ParetoFront`` collecting non-dominated individuals.
+        activation: Activation token, threaded into checkpoint filenames.
+        output_dir: Target output directory.
+        env_details: System environment block for reproducibility.
+        topology: Topology token. Passed through to ``export_pareto_rules``
+            so checkpoint filenames include the topology, preventing
+            cross-topology overwrites within a single shared output dir.
+        run_index: 1-based per-seed run index. Passed through so checkpoint
+            filenames carry a ``_Run<i>`` suffix and do NOT collide across
+            the N independent runs of the same (topology, activation) pair.
+    """
     invalid_ind = [ind for ind in population if not ind.fitness.valid]
     _evaluate_invalid(invalid_ind, toolbox, desc=f"[{activation.upper()}] Gen 0 init")
 
@@ -454,6 +485,7 @@ def custom_eaMuPlusLambda(
     export_pareto_rules(
         halloffame, activation, config, output_dir, env_details,
         is_checkpoint=True, gen=0,
+        topology=topology, run_index=run_index,
     )
 
     with tqdm(total=config.generations,
@@ -480,6 +512,7 @@ def custom_eaMuPlusLambda(
                 export_pareto_rules(
                     halloffame, activation, config, output_dir, env_details,
                     is_checkpoint=True, gen=gen,
+                    topology=topology, run_index=run_index,
                 )
             pbar.update(1)
 
@@ -526,6 +559,7 @@ def run_gp_for_activation(
         custom_eaMuPlusLambda(
             population, toolbox, config, hall_of_fame, activation,
             output_dir, env_details,
+            topology=topology, run_index=run_index,
         )
 
         # Persist per-run artifact (archive subdirectory).
@@ -631,6 +665,11 @@ def _parse_cli_overrides(config: MOGPConfig) -> MOGPConfig:
         "--use_plan_b_soo", action="store_true",
         help="Switch to Plan B single-objective SOO (tournament selection, scalar fitness).",
     )
+    parser.add_argument(
+        "--force_rerun", action="store_true",
+        help="Re-run (topology, activation) pairs even if a consensus artifact "
+             "already exists. Default behaviour is to SKIP such pairs (resume).",
+    )
     args, _unknown = parser.parse_known_args()
 
     if args.topologies is not None:
@@ -641,6 +680,8 @@ def _parse_cli_overrides(config: MOGPConfig) -> MOGPConfig:
         config.n_gp_runs = args.n_runs
     if args.use_plan_b_soo:
         config.use_plan_b_soo = True
+    if args.force_rerun:
+        config.force_rerun = True
 
     return config
 
@@ -656,6 +697,14 @@ def main() -> None:
     aggregated via ``aggregate_consensus_front`` into the consensus front
     written as the canonical artifact in the rule directory; per-run
     intermediates are archived under ``per_run_archive/``.
+
+    Resume safety:
+        At the top of each (topology, activation) inner loop, the function
+        checks whether a consensus artifact already exists for that pair.
+        If so, the pair is SKIPPED unless ``--force_rerun`` is set. This
+        makes the 7-day sweep recoverable: if the process dies on day 4,
+        re-launching from the same shell picks up at the next incomplete
+        pair, preserving all previously-written artifacts.
     """
     config = MOGPConfig()
     config = _parse_cli_overrides(config)
@@ -664,8 +713,23 @@ def main() -> None:
     env_details = get_system_environment(config)
     output_dir = get_generated_directory()
 
-    print("Loading Phase A Dataset Cache (Pre-Scaling to RAM)...")
+    # --- PRE-FLIGHT: refuse to start a 7-day run unless MOD2 normalization
+    # parameters exist on disk. A silent fall-through to raw meta-features
+    # would invalidate every discovered rule and break consistency with the
+    # downstream MOD7/MOD9 evaluation flow (which also reads the same params).
     manager_config = CacheConfig()
+    norm_path = Path(manager_config.norm_params_path)
+    if not norm_path.exists():
+        raise FileNotFoundError(
+            f"PRE-FLIGHT FAILURE: meta-feature normalization params not found at\n"
+            f"    {norm_path}\n"
+            f"Re-run MOD2_pipeline_meta_extractor.py FIRST so that MOD6 receives\n"
+            f"z-scored terminal values consistent with the downstream MOD7\n"
+            f"validation pipeline. Aborting before any compute is wasted."
+        )
+    print(f"PRE-FLIGHT OK: normalization params present at {norm_path.name}")
+
+    print("Loading Phase A Dataset Cache (Pre-Scaling to RAM)...")
     manager = DatasetManager(manager_config)
     manager.load_all_to_ram()
 
@@ -679,6 +743,7 @@ def main() -> None:
     print(f"Activations:   {', '.join(config.activation_functions)}")
     print(f"GP Runs/pair:  {config.n_gp_runs} (seeds: {config.gp_run_seeds[:config.n_gp_runs]})")
     print(f"Mode:          {'Plan B SOO' if config.use_plan_b_soo else 'Plan A Pareto'}")
+    print(f"Force re-run:  {config.force_rerun}")
 
     total_evals = (
         config.population_size
@@ -691,9 +756,23 @@ def main() -> None:
     print(f"Approx. Cumulative PyTorch CPU Evaluations: {total_evals:,}")
 
     exported_files: List[Path] = []
+    skipped_pairs: List[Tuple[str, str]] = []
 
     for topology in config.topology_targets:
         for activation in config.activation_functions:
+            # --- Resume guard: skip pairs whose consensus already exists. ---
+            existing = list(output_dir.glob(
+                f"Final_Discovered_Rules_{activation}_{topology}_*.txt"
+            ))
+            if existing and not config.force_rerun:
+                print(
+                    f"\n========== ({topology.upper()} / {activation.upper()}) "
+                    f"SKIPPED — found {len(existing)} pre-existing consensus "
+                    f"artifact(s). Use --force_rerun to override. =========="
+                )
+                skipped_pairs.append((topology, activation))
+                continue
+
             print(f"\n========== ({topology.upper()} / {activation.upper()}) ==========")
             per_run_fronts: List = []
 
@@ -720,8 +799,36 @@ def main() -> None:
             )
             exported_files.append(consensus_path)
 
+    # --- Write a machine-readable manifest of the full sweep. ---
+    manifest = {
+        "completed_pairs": [
+            {"topology": p.name.split("_")[-3] if "_Run" not in p.name else None,
+             "consensus_file": p.name}
+            for p in exported_files
+        ],
+        "skipped_pairs": [
+            {"topology": t, "activation": a} for (t, a) in skipped_pairs
+        ],
+        "config_snapshot": {
+            "topology_targets": config.topology_targets,
+            "activation_functions": config.activation_functions,
+            "n_gp_runs": config.n_gp_runs,
+            "use_plan_b_soo": config.use_plan_b_soo,
+            "population_size": config.population_size,
+            "generations": config.generations,
+            "datasets_per_rule": config.datasets_per_rule,
+        },
+        "timestamp_utc": datetime.datetime.utcnow().isoformat() + "Z",
+    }
+    import json
+    manifest_path = output_dir / "MOD6_sweep_manifest.json"
+    with manifest_path.open("w", encoding="utf-8") as fh:
+        json.dump(manifest, fh, indent=2)
+
     print("\n--- MODULE 6 MOGP META-GRID SEARCH COMPLETE ---")
-    print("Final Consensus Artifacts:")
+    print(f"Newly written consensus artifacts: {len(exported_files)}")
+    print(f"Skipped (already existed):         {len(skipped_pairs)}")
+    print(f"Manifest:                          {manifest_path.name}")
     for path in exported_files:
         print(f" - {path.name}")
 
