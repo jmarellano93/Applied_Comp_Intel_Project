@@ -36,7 +36,7 @@ warnings.filterwarnings("ignore")
 # FUNCTIONAL BLOCK: Production Configuration Bounds
 # 4A) WHAT IT DOES: Establishes the massive computational dimensions required to
 #     explore the symbolic meta-feature space deeply enough to guarantee global optima.
-# 4B) PARAMETERS: population_size (150), generations (20), datasets_per_rule (20).
+# 4B) PARAMETERS: population_size (100), generations (20), datasets_per_rule (20).
 # 4C) METHODOLOGICAL JUSTIFICATION: Because fitness evaluation requires full
 #     PyTorch neural network training, traditional GP population sizes (e.g., 500+)
 #     are computationally prohibitive. A population of 150 across 20 generations
@@ -49,7 +49,7 @@ warnings.filterwarnings("ignore")
 # =============================================================================
 
 class MOGPConfig(BaseModel):
-    population_size: int = Field(default=150, gt=0)
+    population_size: int = Field(default=100, gt=0)
     generations: int = Field(default=20, gt=0)
     datasets_per_rule: int = Field(default=20, gt=0)
     max_epochs: int = Field(default=30, gt=0)
@@ -650,6 +650,7 @@ def _parse_cli_overrides(config: MOGPConfig) -> MOGPConfig:
             --topologies shallow \\
             --activations rectification \\
             --n_runs 1 \\
+            --population_size 50 \\
             [--use_plan_b_soo]
     With no CLI arguments, the full sweep defined by MOGPConfig defaults runs.
     """
@@ -661,6 +662,11 @@ def _parse_cli_overrides(config: MOGPConfig) -> MOGPConfig:
     parser.add_argument("--topologies", type=str, nargs="+", default=None)
     parser.add_argument("--activations", type=str, nargs="+", default=None)
     parser.add_argument("--n_runs", type=int, default=None)
+    parser.add_argument(
+        "--population_size", type=int, default=None,
+        help="Override the GP population size (default 100). Use 50-75 for "
+             "smoke tests, 100 for production, 150 for a higher-diversity sweep.",
+    )
     parser.add_argument(
         "--use_plan_b_soo", action="store_true",
         help="Switch to Plan B single-objective SOO (tournament selection, scalar fitness).",
@@ -678,6 +684,8 @@ def _parse_cli_overrides(config: MOGPConfig) -> MOGPConfig:
         config.activation_functions = args.activations
     if args.n_runs is not None:
         config.n_gp_runs = args.n_runs
+    if args.population_size is not None:
+        config.population_size = args.population_size
     if args.use_plan_b_soo:
         config.use_plan_b_soo = True
     if args.force_rerun:
@@ -687,16 +695,29 @@ def _parse_cli_overrides(config: MOGPConfig) -> MOGPConfig:
 
 
 def main() -> None:
-    """Full sweep across (topology, activation, run-seed) triples.
+    """Full sweep across (activation, topology, run-seed) triples.
 
-    Outer loop:  topology  in config.topology_targets       (default 3)
-    Middle loop: activation in config.activation_functions  (default 6)
-    Inner loop:  run_idx    in 1..config.n_gp_runs           (default 3)
+    Outer loop:  activation in config.activation_functions  (default 6)
+    Middle loop: topology   in config.topology_targets      (default 3)
+    Inner loop:  run_idx    in 1..config.n_gp_runs          (default 3)
 
-    For each (topology, activation), the N per-run Pareto fronts are
+    For each (activation, topology), the N per-run Pareto fronts are
     aggregated via ``aggregate_consensus_front`` into the consensus front
     written as the canonical artifact in the rule directory; per-run
     intermediates are archived under ``per_run_archive/``.
+
+    Iteration order rationale:
+        Activation is the OUTER loop, so all three topologies for a given
+        activation function complete BEFORE the next activation begins.
+        If the sweep is terminated early (intentionally, due to time
+        constraints, or by an unexpected crash), the user is guaranteed
+        to have *complete* result sets for every fully-finished activation
+        — i.e., consensus fronts for all three topologies of that
+        activation. Reducing the activation set via ``--activations``
+        therefore lets the user finish a 2-activation sweep in ~1.5 days
+        instead of waiting ~4.7 days for the full 6-activation sweep, while
+        still yielding analyzable (topology, activation) cells for every
+        completed activation.
 
     Resume safety:
         At the top of each (topology, activation) inner loop, the function
@@ -758,22 +779,22 @@ def main() -> None:
     exported_files: List[Path] = []
     skipped_pairs: List[Tuple[str, str]] = []
 
-    for topology in config.topology_targets:
-        for activation in config.activation_functions:
+    for activation in config.activation_functions:
+        for topology in config.topology_targets:
             # --- Resume guard: skip pairs whose consensus already exists. ---
             existing = list(output_dir.glob(
                 f"Final_Discovered_Rules_{activation}_{topology}_*.txt"
             ))
             if existing and not config.force_rerun:
                 print(
-                    f"\n========== ({topology.upper()} / {activation.upper()}) "
+                    f"\n========== ({activation.upper()} / {topology.upper()}) "
                     f"SKIPPED — found {len(existing)} pre-existing consensus "
                     f"artifact(s). Use --force_rerun to override. =========="
                 )
                 skipped_pairs.append((topology, activation))
                 continue
 
-            print(f"\n========== ({topology.upper()} / {activation.upper()}) ==========")
+            print(f"\n========== ({activation.upper()} / {topology.upper()}) ==========")
             per_run_fronts: List = []
 
             for run_index in range(1, config.n_gp_runs + 1):
