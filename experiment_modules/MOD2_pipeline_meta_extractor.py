@@ -8,6 +8,7 @@ them using K-Means spatial representation to guarantee distributional coverage.
 import os
 import glob
 import logging
+from pathlib import Path
 from typing import Tuple, List, Dict
 import numpy as np
 import pandas as pd
@@ -40,8 +41,12 @@ logger = logging.getLogger(__name__)
 #       (division by zero) during ratio configurations.
 # =============================================================================
 class ExtractionConfig(BaseModel):
-    project_root: str = Field(default=r"C:\Users\John Arellano\PycharmProjects\Applied_Comp_Intel_Project")
-    output_dir: str = Field(default=r"C:\Users\John Arellano\PycharmProjects\Applied_Comp_Intel_Project\experiment_modules\generated_files")
+    project_root: str = Field(
+        default_factory=lambda: str(Path(__file__).resolve().parent.parent)
+    )
+    output_dir: str = Field(
+        default_factory=lambda: str(Path(__file__).resolve().parent / "generated_files")
+    )
 
     dataset_dir: str = ""
     log_path: str = ""
