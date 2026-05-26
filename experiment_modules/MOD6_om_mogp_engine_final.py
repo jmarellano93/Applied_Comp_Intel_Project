@@ -13,6 +13,7 @@ import math
 import operator
 import os
 import random
+import re
 import subprocess
 import sys
 import warnings
@@ -100,6 +101,16 @@ class MOGPConfig(BaseModel):
     # overwrite previously-computed pairs.
     # -------------------------------------------------------------------------
     force_rerun: bool = Field(default=False)
+
+    # -------------------------------------------------------------------------
+    # Per-seed cluster-job support: when running one seed per Slurm job, set
+    # ``skip_aggregation=True`` so each job writes only its per-run artifact
+    # (no consensus file). After all per-seed jobs finish, run a single
+    # ``--aggregate_from_disk`` pass to read the per-run files and produce the
+    # canonical consensus artifact per (topology, activation) pair.
+    # -------------------------------------------------------------------------
+    skip_aggregation: bool = Field(default=False)
+    aggregate_from_disk: bool = Field(default=False)
 
     num_threads: int = Field(default=4, ge=1)
     checkpoint_every_n_gen: int = Field(default=5, gt=0)
@@ -676,6 +687,25 @@ def _parse_cli_overrides(config: MOGPConfig) -> MOGPConfig:
         help="Re-run (topology, activation) pairs even if a consensus artifact "
              "already exists. Default behaviour is to SKIP such pairs (resume).",
     )
+    parser.add_argument(
+        "--gp_run_seeds", type=int, nargs="+", default=None,
+        help="Override the list of random seeds. Pass one or more integers, "
+             "e.g. --gp_run_seeds 42 to run only seed 42, or --gp_run_seeds 42 43 44 "
+             "to run all three. When provided, n_gp_runs is set to len(gp_run_seeds).",
+    )
+    parser.add_argument(
+        "--skip_aggregation", action="store_true",
+        help="Run GP and write per-run files to per_run_archive/ but do NOT "
+             "aggregate or write the canonical consensus file. Use this for "
+             "per-seed cluster jobs; run with --aggregate_from_disk afterward.",
+    )
+    parser.add_argument(
+        "--aggregate_from_disk", action="store_true",
+        help="Skip GP entirely. For every (topology, activation) pair in the "
+             "config, read all matching per-run files from per_run_archive/, "
+             "rebuild the per-run Pareto fronts, aggregate them into a consensus "
+             "front via NSGA-II re-sort, and write the canonical consensus file.",
+    )
     args, _unknown = parser.parse_known_args()
 
     if args.topologies is not None:
@@ -690,8 +720,160 @@ def _parse_cli_overrides(config: MOGPConfig) -> MOGPConfig:
         config.use_plan_b_soo = True
     if args.force_rerun:
         config.force_rerun = True
+    if args.gp_run_seeds is not None:
+        config.gp_run_seeds = list(args.gp_run_seeds)
+        config.n_gp_runs = len(args.gp_run_seeds)
+    if args.skip_aggregation:
+        config.skip_aggregation = True
+    if args.aggregate_from_disk:
+        config.aggregate_from_disk = True
 
     return config
+
+
+def _rebuild_individual_from_strings(
+    equation_str: str, fitness_values: Tuple[float, ...],
+    pset: gp.PrimitiveSet, use_plan_b_soo: bool,
+) -> "creator.Individual":
+    """Reconstruct a DEAP Individual from a serialised tree string + fitness.
+
+    Used by ``aggregate_consensus_from_disk`` to rebuild in-memory individuals
+    from per-run text artifacts so NSGA-II re-sort can run.
+    """
+    tree = gp.PrimitiveTree.from_string(equation_str, pset)
+    ind = creator.Individual(tree)
+    ind.fitness.values = fitness_values
+    return ind
+
+
+def aggregate_consensus_from_disk(
+    config: MOGPConfig, output_dir: Path, env_details: str,
+) -> None:
+    """Read per-run files from per_run_archive/ and write consensus artifacts.
+
+    For every (topology, activation) pair in the config:
+        1. Glob for matching per-run files in per_run_archive/.
+        2. Parse each file to recover (equation, fitness) tuples.
+        3. Rebuild DEAP Individuals from those tuples.
+        4. Call aggregate_consensus_front() to compute the consensus.
+        5. Write the consensus file via export_pareto_rules().
+
+    Skips pairs that already have a consensus artifact (unless force_rerun).
+    Skips pairs that have zero per-run files in per_run_archive/.
+    """
+    ensure_deap_creators(use_plan_b_soo=config.use_plan_b_soo)
+    pset = build_primitive_set()
+    archive_dir = output_dir / "per_run_archive"
+
+    if not archive_dir.exists():
+        raise FileNotFoundError(
+            f"aggregate_from_disk: per_run_archive/ not found at {archive_dir}. "
+            f"Run the per-seed sweep first."
+        )
+
+    # Regex to extract rules from the per-run text format.
+    # The format is:
+    #     Rank N:
+    #     Equation: <DEAP tree string>
+    #     Fitness: [Acc: A, Epochs: E, Bloat: B]   (Plan A)
+    # or
+    #     Fitness: [Scalar: S]                      (Plan B)
+    rule_pattern = re.compile(
+        r"Rank\s+\d+:\s*\n"
+        r"Equation:\s*(?P<eq>.+?)\s*\n"
+        r"Fitness:\s*\[(?P<fit>.+?)\]",
+        re.DOTALL,
+    )
+
+    completed: List[Path] = []
+    skipped: List[Tuple[str, str]] = []
+    empty: List[Tuple[str, str]] = []
+
+    for activation in config.activation_functions:
+        for topology in config.topology_targets:
+            # Resume guard.
+            existing = list(output_dir.glob(
+                f"Final_Discovered_Rules_{activation}_{topology}_*.txt"
+            ))
+            if existing and not config.force_rerun:
+                print(
+                    f"---- ({activation} / {topology}) SKIPPED "
+                    f"(consensus already present: {existing[0].name})"
+                )
+                skipped.append((topology, activation))
+                continue
+
+            # Find per-run files for this pair.
+            per_run_glob = (
+                f"Final_Discovered_Rules_{activation}_{topology}_Run*_*.txt"
+            )
+            per_run_files = sorted(archive_dir.glob(per_run_glob))
+            if not per_run_files:
+                print(
+                    f"---- ({activation} / {topology}) NO per-run files "
+                    f"matching {per_run_glob}; skipping."
+                )
+                empty.append((topology, activation))
+                continue
+
+            print(
+                f"==== ({activation} / {topology}) "
+                f"aggregating {len(per_run_files)} per-run files ===="
+            )
+
+            per_run_fronts: List = []
+            for prf in per_run_files:
+                text = prf.read_text(encoding="utf-8")
+                front: List = []
+                for m in rule_pattern.finditer(text):
+                    eq_str = m.group("eq").strip()
+                    fit_str = m.group("fit").strip()
+
+                    # Parse fitness values from "Acc: X, Epochs: Y, Bloat: Z"
+                    # or "Scalar: S".
+                    if config.use_plan_b_soo or fit_str.startswith("Scalar"):
+                        scalar_val = float(fit_str.split(":")[-1].strip())
+                        fit_values: Tuple[float, ...] = (scalar_val,)
+                    else:
+                        parts = [p.strip() for p in fit_str.split(",")]
+                        acc = float(parts[0].split(":")[-1].strip())
+                        eps = float(parts[1].split(":")[-1].strip())
+                        bloat = float(parts[2].split(":")[-1].strip())
+                        fit_values = (acc, eps, bloat)
+
+                    try:
+                        ind = _rebuild_individual_from_strings(
+                            eq_str, fit_values, pset, config.use_plan_b_soo,
+                        )
+                        front.append(ind)
+                    except Exception as e:
+                        print(
+                            f"  Warning: could not parse equation '{eq_str}' "
+                            f"from {prf.name}: {e}"
+                        )
+                        continue
+
+                print(f"  {prf.name}: recovered {len(front)} rules")
+                per_run_fronts.append(front)
+
+            # Aggregate and write consensus.
+            consensus = aggregate_consensus_front(per_run_fronts, config)
+            print(f"  consensus front size: {len(consensus)} unique rules")
+
+            consensus_path = export_pareto_rules(
+                hall_of_fame=consensus, activation=activation, config=config,
+                output_dir=output_dir, env_details=env_details, top_k=10,
+                is_checkpoint=False, topology=topology, run_index=None,
+            )
+            completed.append(consensus_path)
+            print(f"  wrote {consensus_path.name}")
+
+    print("\n" + "=" * 72)
+    print("aggregate_from_disk summary:")
+    print(f"  wrote consensus    : {len(completed)} pair(s)")
+    print(f"  skipped (existed)  : {len(skipped)} pair(s)")
+    print(f"  skipped (no inputs): {len(empty)} pair(s)")
+    print("=" * 72)
 
 
 def main() -> None:
@@ -733,6 +915,12 @@ def main() -> None:
     configure_torch_threads(config)
     env_details = get_system_environment(config)
     output_dir = get_generated_directory()
+
+    # --- aggregate-from-disk short-circuit ---
+    if config.aggregate_from_disk:
+        print("--- aggregate_from_disk mode: skipping GP, reading per-run files ---")
+        aggregate_consensus_from_disk(config, output_dir, env_details)
+        return
 
     # --- PRE-FLIGHT: refuse to start a 7-day run unless MOD2 normalization
     # parameters exist on disk. A silent fall-through to raw meta-features
@@ -809,16 +997,22 @@ def main() -> None:
                 )
                 per_run_fronts.append(front)
 
-            # Aggregate into consensus front and write the canonical artifact.
-            consensus = aggregate_consensus_front(per_run_fronts, config)
-            print(f"Consensus front size: {len(consensus)} unique rules")
+            if config.skip_aggregation:
+                print(
+                    f"--- skip_aggregation=True: per-run files written; "
+                    f"consensus deferred to --aggregate_from_disk pass ---"
+                )
+            else:
+                # Aggregate into consensus front and write the canonical artifact.
+                consensus = aggregate_consensus_front(per_run_fronts, config)
+                print(f"Consensus front size: {len(consensus)} unique rules")
 
-            consensus_path = export_pareto_rules(
-                hall_of_fame=consensus, activation=activation, config=config,
-                output_dir=output_dir, env_details=env_details, top_k=10,
-                is_checkpoint=False, topology=topology, run_index=None,
-            )
-            exported_files.append(consensus_path)
+                consensus_path = export_pareto_rules(
+                    hall_of_fame=consensus, activation=activation, config=config,
+                    output_dir=output_dir, env_details=env_details, top_k=10,
+                    is_checkpoint=False, topology=topology, run_index=None,
+                )
+                exported_files.append(consensus_path)
 
     # --- Write a machine-readable manifest of the full sweep. ---
     manifest = {
