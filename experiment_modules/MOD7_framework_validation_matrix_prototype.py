@@ -445,13 +445,19 @@ def main() -> None:
     # Per-dataset trainer pool (lifetime = this CLI invocation)
     trainer_pool: Dict[int, FNNTrainer] = {}
 
-    # Trial-metric accumulators
+    # Trial-metric accumulators. Each method records 5 parallel arrays:
+    # acc, epochs, loss are the original per-trial metrics; did and seed are
+    # added for downstream cluster-stratified analysis (MOD8). Existing
+    # consumers that read only acc/epochs/loss remain compatible.
     rule_keys = [f"GP_Rule_{i+1}" for i in range(len(gp_funcs))]
-    trial_metrics: Dict[str, Dict[str, List[float]]] = {
-        k: {"acc": [], "epochs": [], "loss": []} for k in rule_keys
+    trial_metrics: Dict[str, Dict[str, List]] = {
+        k: {"acc": [], "epochs": [], "loss": [], "did": [], "seed": []}
+        for k in rule_keys
     }
     for base in BASELINE_METHODS:
-        trial_metrics[base] = {"acc": [], "epochs": [], "loss": []}
+        trial_metrics[base] = {
+            "acc": [], "epochs": [], "loss": [], "did": [], "seed": [],
+        }
 
     win_matrix: Dict[str, Dict[str, int]] = {
         k: {base: 0 for base in BASELINE_METHODS} for k in rule_keys
@@ -482,6 +488,8 @@ def main() -> None:
                 trial_metrics[rule_keys[i]]["acc"].append(acc)
                 trial_metrics[rule_keys[i]]["epochs"].append(epochs)
                 trial_metrics[rule_keys[i]]["loss"].append(loss)
+                trial_metrics[rule_keys[i]]["did"].append(int(did))
+                trial_metrics[rule_keys[i]]["seed"].append(int(seed))
                 current_gp_losses.append(loss)
 
             # Baselines
@@ -493,6 +501,8 @@ def main() -> None:
                 trial_metrics[base]["acc"].append(acc)
                 trial_metrics[base]["epochs"].append(epochs)
                 trial_metrics[base]["loss"].append(base_loss)
+                trial_metrics[base]["did"].append(int(did))
+                trial_metrics[base]["seed"].append(int(seed))
 
                 for i, gp_loss in enumerate(current_gp_losses):
                     if gp_loss < base_loss:

@@ -6,9 +6,9 @@ artifacts (most-recent timestamp per activation), extracts equations via
 regex, and pipelines them into ``MOD7_framework_validation_matrix.py`` as
 subprocess invocations.
 
-Default rule directory: ``generated_files/GA_rule_files_testing/``. Override
-with ``--rule_directory PATH`` when running against real production rules
-(``GA_rule_files/``) or any other location.
+Default rule directory: ``generated_files/GA_rule_files/`` (production
+consensus artifacts). Override with ``--rule_directory PATH`` to point at
+``GA_rule_files_testing/`` or any other location during development.
 
 Forwards ``--quick_test`` to MOD7 so MSTR3 can request a fast pipeline check.
 """
@@ -39,14 +39,14 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 def _default_rule_directory() -> Path:
-    """Returns the default rule artifact directory (testing mode).
+    """Returns the default rule artifact directory (production consensus).
 
     Note:
-        To switch to production rules, change the path returned here to
-        ``generated_files/GA_rule_files`` (no trailing 'testing'), or pass
-        ``--rule_directory`` at the CLI.
+        Override with ``--rule_directory`` to point at a testing directory
+        (e.g. ``generated_files/GA_rule_files_testing``) when developing
+        without disturbing the production artifacts.
     """
-    return Path(__file__).resolve().parent / "generated_files" / "GA_rule_files_testing"
+    return Path(__file__).resolve().parent / "generated_files" / "GA_rule_files"
 
 
 class DriverMatrixConfig(BaseModel):
@@ -75,7 +75,9 @@ class DriverMatrixConfig(BaseModel):
     )
     rule_directory: Path = Field(default_factory=_default_rule_directory)
     activation_targets: List[str] = Field(
-        default=["rectification", "squashing", "smooth", "aggregation", "trigonometric", "linear"]
+        default=["rectification", "smooth", "aggregation", "squashing", "linear", "trigonometric"],
+        description="Order: best-performing activations first, partial-coverage (trigonometric) last "
+                    "so its expected 'no artifacts' warnings cluster at the end of the log.",
     )
     quick_test: bool = Field(default=False)
 
@@ -215,7 +217,7 @@ def main() -> None:
     parser.add_argument(
         "--rule_directory", type=str, default=None,
         help="Directory containing Final_Discovered_Rules_*.txt artifacts. "
-             "Defaults to generated_files/GA_rule_files_testing.",
+             "Defaults to generated_files/GA_rule_files (production).",
     )
     parser.add_argument(
         "--topologies", type=str, nargs="+", default=None,

@@ -124,19 +124,20 @@ def sanitize_sigma_squared(value: float) -> float:
     return abs(sigma_squared)
 
 
-def compile_gp_rule(rule_string: str) -> Callable[..., float]:
-    """Compiles a GP rule string into a callable mapping meta-features → variance.
-
-    Args:
-        rule_string: The DEAP-formatted equation, e.g.
-            ``"sin(protected_log(mul(hopkins, iqr_dev)))"``.
+def _build_module_pset() -> "gp.PrimitiveSet":
+    """Builds the shared primitive set once at module import.
 
     Returns:
-        Callable that takes the 8 meta-features (positional) and returns a
-        float variance estimate.
+        A DEAP ``PrimitiveSet`` with the same 10 primitives and 8 terminals
+        used in MOD6, ready for rule compilation.
 
-    Raises:
-        deap.gp.PrimitiveTree.from_string errors on malformed strings.
+    Note:
+        Defined at module scope to avoid DEAP's per-call ephemeral-constant
+        re-registration error. ``addEphemeralConstant`` registers a class
+        in the ``gp`` module namespace; calling it more than once with the
+        same name (e.g. when compiling N>1 rules sequentially) raises a
+        ``RuntimeError``. Hoisting the pset construction to module load
+        time guarantees a single registration per Python process.
     """
     pset = gp.PrimitiveSet("MAIN", 8)
     pset.renameArguments(
@@ -154,9 +155,29 @@ def compile_gp_rule(rule_string: str) -> Callable[..., float]:
     pset.addPrimitive(protected_log, 1)
     pset.addPrimitive(protected_exp, 1)
     pset.addEphemeralConstant("rand101", lambda: random.uniform(-1.0, 1.0))
+    return pset
 
-    tree = gp.PrimitiveTree.from_string(rule_string, pset)
-    return gp.compile(tree, pset)
+
+# Module-level shared pset (built once on import).
+_PSET: "gp.PrimitiveSet" = _build_module_pset()
+
+
+def compile_gp_rule(rule_string: str) -> Callable[..., float]:
+    """Compiles a GP rule string into a callable mapping meta-features → variance.
+
+    Args:
+        rule_string: The DEAP-formatted equation, e.g.
+            ``"sin(protected_log(mul(hopkins, iqr_dev)))"``.
+
+    Returns:
+        Callable that takes the 8 meta-features (positional) and returns a
+        float variance estimate.
+
+    Raises:
+        deap.gp.PrimitiveTree.from_string errors on malformed strings.
+    """
+    tree = gp.PrimitiveTree.from_string(rule_string, _PSET)
+    return gp.compile(tree, _PSET)
 
 
 def seed_runtime(seed: int) -> None:
@@ -418,13 +439,19 @@ def main() -> None:
     # Per-dataset trainer pool (lifetime = this CLI invocation)
     trainer_pool: Dict[int, FNNTrainer] = {}
 
-    # Trial-metric accumulators
+    # Trial-metric accumulators. Each method records 5 parallel arrays:
+    # acc, epochs, loss are the original per-trial metrics; did and seed are
+    # added for downstream cluster-stratified analysis (MOD8). Existing
+    # consumers that read only acc/epochs/loss remain compatible.
     rule_keys = [f"GP_Rule_{i+1}" for i in range(len(gp_funcs))]
-    trial_metrics: Dict[str, Dict[str, List[float]]] = {
-        k: {"acc": [], "epochs": [], "loss": []} for k in rule_keys
+    trial_metrics: Dict[str, Dict[str, List]] = {
+        k: {"acc": [], "epochs": [], "loss": [], "did": [], "seed": []}
+        for k in rule_keys
     }
     for base in BASELINE_METHODS:
-        trial_metrics[base] = {"acc": [], "epochs": [], "loss": []}
+        trial_metrics[base] = {
+            "acc": [], "epochs": [], "loss": [], "did": [], "seed": [],
+        }
 
     win_matrix: Dict[str, Dict[str, int]] = {
         k: {base: 0 for base in BASELINE_METHODS} for k in rule_keys
@@ -439,22 +466,28 @@ def main() -> None:
         )
         tensors, _ = manager.get_dataset(did)
 
+        # Each GP rule's sigma depends only on m_vals (constant per dataset),
+        # so precompute once per dataset rather than re-evaluating per seed.
+        sigmas_per_rule: List[float] = []
+        for func in gp_funcs:
+            try:
+                sigmas_per_rule.append(sanitize_sigma_squared(func(*m_vals)))
+            except Exception:
+                sigmas_per_rule.append(1e-5)
+
         for seed in trial_seeds:
             total_trials += 1
             current_gp_losses: List[float] = []
 
             # GP rules
-            for i, func in enumerate(gp_funcs):
-                try:
-                    sigma = sanitize_sigma_squared(func(*m_vals))
-                except Exception:
-                    sigma = 1e-5
-
+            for i, sigma in enumerate(sigmas_per_rule):
                 seed_runtime(seed)
                 acc, epochs, loss = _evaluate_gp_rule_on_trainer(trainer, sigma)
                 trial_metrics[rule_keys[i]]["acc"].append(acc)
                 trial_metrics[rule_keys[i]]["epochs"].append(epochs)
                 trial_metrics[rule_keys[i]]["loss"].append(loss)
+                trial_metrics[rule_keys[i]]["did"].append(int(did))
+                trial_metrics[rule_keys[i]]["seed"].append(int(seed))
                 current_gp_losses.append(loss)
 
             # Baselines
@@ -466,6 +499,8 @@ def main() -> None:
                 trial_metrics[base]["acc"].append(acc)
                 trial_metrics[base]["epochs"].append(epochs)
                 trial_metrics[base]["loss"].append(base_loss)
+                trial_metrics[base]["did"].append(int(did))
+                trial_metrics[base]["seed"].append(int(seed))
 
                 for i, gp_loss in enumerate(current_gp_losses):
                     if gp_loss < base_loss:
