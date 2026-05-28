@@ -1,0 +1,49 @@
+APPLIED COMPUTATIONAL INTELLIGENCE: MODULE 6 RESULTS
+Activation Function: RECTIFICATION
+Topology: deep_narrow
+Status: PER-RUN PARETO FRONT (Run 1)
+Mode: Plan A Pareto (NSGA-II)
+========================================================================
+--- SYSTEM & ENVIRONMENT LOG ---
+Python Version: 3.12.6
+PyTorch Version: 2.5.1+cu121
+DEAP Version: 1.4
+Scikit-Learn Version: 1.8.0
+OS Platform: Windows-11-10.0.26200-SP0
+Hardware: AMD64 / Intel64 Family 6 Model 165 Stepping 2, GenuineIntel
+Execution Target: CPU-ONLY (Phase A shallow FNN)
+PyTorch Threads -> intra_op: 4 | inter_op: 1
+Random Seed: 42
+Git Commit: 096cb687dbd7d97b9810a245ac33d7b198ea0345
+--------------------------------
+========================================================================
+Population: 100 | Generations: 20
+Datasets/Rule: 20 | Batch: 64 | Topology: deep_narrow
+========================================================================
+
+Top Discovered Rules-of-Thumb:
+
+Rank 1:
+Equation: mul(-0.012968330220737956, protected_exp(protected_sqrt(davies_bouldin)))
+Fitness: [Acc: 0.7564, Epochs: 20.30, Bloat: 5.0]
+
+Rank 2:
+Equation: mul(-0.030805965859466378, sin(add(feat_kurtosis, feat_kurtosis)))
+Fitness: [Acc: 0.7520, Epochs: 19.85, Bloat: 6.0]
+
+Rank 3:
+Equation: neg(mul(feat_kurtosis, -0.02293629570124689))
+Fitness: [Acc: 0.7474, Epochs: 20.30, Bloat: 4.0]
+
+Rank 4:
+Equation: sin(-0.02293629570124689)
+Fitness: [Acc: 0.7452, Epochs: 21.05, Bloat: 2.0]
+
+Rank 5:
+Equation: sin(-0.030805965859466378)
+Fitness: [Acc: 0.7438, Epochs: 20.60, Bloat: 2.0]
+
+Rank 6:
+Equation: -0.02336735749173524
+Fitness: [Acc: 0.7408, Epochs: 21.25, Bloat: 1.0]
+

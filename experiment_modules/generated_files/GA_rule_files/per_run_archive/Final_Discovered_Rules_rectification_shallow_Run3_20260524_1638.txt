@@ -1,0 +1,61 @@
+APPLIED COMPUTATIONAL INTELLIGENCE: MODULE 6 RESULTS
+Activation Function: RECTIFICATION
+Topology: shallow
+Status: PER-RUN PARETO FRONT (Run 3)
+Mode: Plan A Pareto (NSGA-II)
+========================================================================
+--- SYSTEM & ENVIRONMENT LOG ---
+Python Version: 3.12.6
+PyTorch Version: 2.5.1+cu121
+DEAP Version: 1.4
+Scikit-Learn Version: 1.8.0
+OS Platform: Windows-11-10.0.26200-SP0
+Hardware: AMD64 / Intel64 Family 6 Model 165 Stepping 2, GenuineIntel
+Execution Target: CPU-ONLY (Phase A shallow FNN)
+PyTorch Threads -> intra_op: 4 | inter_op: 1
+Random Seed: 42
+Git Commit: 096cb687dbd7d97b9810a245ac33d7b198ea0345
+--------------------------------
+========================================================================
+Population: 100 | Generations: 20
+Datasets/Rule: 20 | Batch: 64 | Topology: shallow
+========================================================================
+
+Top Discovered Rules-of-Thumb:
+
+Rank 1:
+Equation: mul(mul(protected_log(feat_kurtosis), protected_exp(n_d_ratio)), 0.029732636384331323)
+Fitness: [Acc: 0.7579, Epochs: 20.85, Bloat: 7.0]
+
+Rank 2:
+Equation: mul(target_entropy, 0.029732636384331323)
+Fitness: [Acc: 0.7547, Epochs: 20.85, Bloat: 3.0]
+
+Rank 3:
+Equation: mul(feat_kurtosis, 0.029732636384331323)
+Fitness: [Acc: 0.7522, Epochs: 20.60, Bloat: 3.0]
+
+Rank 4:
+Equation: mul(target_entropy, 0.006319341442376558)
+Fitness: [Acc: 0.7518, Epochs: 19.85, Bloat: 3.0]
+
+Rank 5:
+Equation: mul(protected_exp(-0.700973764975481), 0.029732636384331323)
+Fitness: [Acc: 0.7510, Epochs: 19.75, Bloat: 4.0]
+
+Rank 6:
+Equation: mul(hopkins, 0.029732636384331323)
+Fitness: [Acc: 0.7469, Epochs: 19.75, Bloat: 3.0]
+
+Rank 7:
+Equation: mul(protected_exp(silhouette), 0.029732636384331323)
+Fitness: [Acc: 0.7454, Epochs: 19.70, Bloat: 4.0]
+
+Rank 8:
+Equation: sin(0.006319341442376558)
+Fitness: [Acc: 0.7421, Epochs: 20.80, Bloat: 2.0]
+
+Rank 9:
+Equation: -0.03673522535587925
+Fitness: [Acc: 0.7403, Epochs: 20.70, Bloat: 1.0]
+

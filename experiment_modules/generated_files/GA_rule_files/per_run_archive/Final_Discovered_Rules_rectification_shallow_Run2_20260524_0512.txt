@@ -1,0 +1,65 @@
+APPLIED COMPUTATIONAL INTELLIGENCE: MODULE 6 RESULTS
+Activation Function: RECTIFICATION
+Topology: shallow
+Status: PER-RUN PARETO FRONT (Run 2)
+Mode: Plan A Pareto (NSGA-II)
+========================================================================
+--- SYSTEM & ENVIRONMENT LOG ---
+Python Version: 3.12.6
+PyTorch Version: 2.5.1+cu121
+DEAP Version: 1.4
+Scikit-Learn Version: 1.8.0
+OS Platform: Windows-11-10.0.26200-SP0
+Hardware: AMD64 / Intel64 Family 6 Model 165 Stepping 2, GenuineIntel
+Execution Target: CPU-ONLY (Phase A shallow FNN)
+PyTorch Threads -> intra_op: 4 | inter_op: 1
+Random Seed: 42
+Git Commit: 096cb687dbd7d97b9810a245ac33d7b198ea0345
+--------------------------------
+========================================================================
+Population: 100 | Generations: 20
+Datasets/Rule: 20 | Batch: 64 | Topology: shallow
+========================================================================
+
+Top Discovered Rules-of-Thumb:
+
+Rank 1:
+Equation: mul(neg(-0.1505116009253764), mul(iqr_dev, 0.670090829155908))
+Fitness: [Acc: 0.7536, Epochs: 20.70, Bloat: 6.0]
+
+Rank 2:
+Equation: mul(-0.12522525432862852, mul(0.022271747980667334, 0.670090829155908))
+Fitness: [Acc: 0.7485, Epochs: 20.90, Bloat: 5.0]
+
+Rank 3:
+Equation: mul(-0.07284367519641854, target_entropy)
+Fitness: [Acc: 0.7480, Epochs: 21.85, Bloat: 3.0]
+
+Rank 4:
+Equation: mul(-0.07284367519641854, sin(pc_eigen))
+Fitness: [Acc: 0.7475, Epochs: 20.55, Bloat: 4.0]
+
+Rank 5:
+Equation: mul(-0.07284367519641854, 0.274891287813118)
+Fitness: [Acc: 0.7461, Epochs: 20.90, Bloat: 3.0]
+
+Rank 6:
+Equation: mul(neg(-0.1505116009253764), mul(0.022271747980667334, 0.670090829155908))
+Fitness: [Acc: 0.7458, Epochs: 19.80, Bloat: 6.0]
+
+Rank 7:
+Equation: add(iqr_dev, 0.274891287813118)
+Fitness: [Acc: 0.7458, Epochs: 20.65, Bloat: 3.0]
+
+Rank 8:
+Equation: mul(-0.07284367519641854, iqr_dev)
+Fitness: [Acc: 0.7455, Epochs: 20.55, Bloat: 3.0]
+
+Rank 9:
+Equation: -0.05588181930840008
+Fitness: [Acc: 0.7451, Epochs: 21.95, Bloat: 1.0]
+
+Rank 10:
+Equation: -0.038301654554462994
+Fitness: [Acc: 0.7445, Epochs: 20.85, Bloat: 1.0]
+

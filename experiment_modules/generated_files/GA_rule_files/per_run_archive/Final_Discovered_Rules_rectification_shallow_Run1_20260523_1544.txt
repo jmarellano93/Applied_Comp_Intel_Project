@@ -1,0 +1,45 @@
+APPLIED COMPUTATIONAL INTELLIGENCE: MODULE 6 RESULTS
+Activation Function: RECTIFICATION
+Topology: shallow
+Status: PER-RUN PARETO FRONT (Run 1)
+Mode: Plan A Pareto (NSGA-II)
+========================================================================
+--- SYSTEM & ENVIRONMENT LOG ---
+Python Version: 3.12.6
+PyTorch Version: 2.5.1+cu121
+DEAP Version: 1.4
+Scikit-Learn Version: 1.8.0
+OS Platform: Windows-11-10.0.26200-SP0
+Hardware: AMD64 / Intel64 Family 6 Model 165 Stepping 2, GenuineIntel
+Execution Target: CPU-ONLY (Phase A shallow FNN)
+PyTorch Threads -> intra_op: 4 | inter_op: 1
+Random Seed: 42
+Git Commit: 096cb687dbd7d97b9810a245ac33d7b198ea0345
+--------------------------------
+========================================================================
+Population: 100 | Generations: 20
+Datasets/Rule: 20 | Batch: 64 | Topology: shallow
+========================================================================
+
+Top Discovered Rules-of-Thumb:
+
+Rank 1:
+Equation: neg(-0.02293629570124689)
+Fitness: [Acc: 0.7547, Epochs: 21.00, Bloat: 2.0]
+
+Rank 2:
+Equation: -0.007290573263814659
+Fitness: [Acc: 0.7534, Epochs: 20.80, Bloat: 1.0]
+
+Rank 3:
+Equation: mul(-0.012968330220737956, protected_log(mul(protected_sqrt(-0.15175063085481488), protected_sqrt(silhouette))))
+Fitness: [Acc: 0.7530, Epochs: 19.70, Bloat: 8.0]
+
+Rank 4:
+Equation: mul(-0.02293629570124689, feat_kurtosis)
+Fitness: [Acc: 0.7511, Epochs: 19.70, Bloat: 3.0]
+
+Rank 5:
+Equation: sub(-0.24487943980207638, iqr_dev)
+Fitness: [Acc: 0.7487, Epochs: 19.60, Bloat: 3.0]
+
