@@ -93,7 +93,7 @@ class QualitativeConfig(BaseModel):
         """
         d = (
             Path(__file__).resolve().parent
-            / "generated_files" / "GA_rule_files_testing"
+            / "generated_files" / "GA_rule_files"
         )
         d.mkdir(parents=True, exist_ok=True)
         return d

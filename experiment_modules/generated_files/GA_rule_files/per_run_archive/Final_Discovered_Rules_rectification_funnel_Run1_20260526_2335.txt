@@ -1,0 +1,57 @@
+APPLIED COMPUTATIONAL INTELLIGENCE: MODULE 6 RESULTS
+Activation Function: RECTIFICATION
+Topology: funnel
+Status: PER-RUN PARETO FRONT (Run 1)
+Mode: Plan A Pareto (NSGA-II)
+========================================================================
+--- SYSTEM & ENVIRONMENT LOG ---
+Python Version: 3.12.13
+PyTorch Version: 2.5.0+cu124
+DEAP Version: 1.4
+Scikit-Learn Version: 1.8.0
+OS Platform: Linux-6.8.0-117-generic-x86_64-with-glibc2.39
+Hardware: x86_64 / x86_64
+Execution Target: CPU-ONLY (Phase A shallow FNN)
+PyTorch Threads -> intra_op: 4 | inter_op: 1
+Random Seed: 42
+Git Commit: 6510ae6ce7d4d6e474eeffd97c861b5e7f5de6cc
+--------------------------------
+========================================================================
+Population: 100 | Generations: 20
+Datasets/Rule: 20 | Batch: 64 | Topology: funnel
+========================================================================
+
+Top Discovered Rules-of-Thumb:
+
+Rank 1:
+Equation: sin(mul(0.06796517551780235, hopkins))
+Fitness: [Acc: 0.7915, Epochs: 15.50, Bloat: 4.0]
+
+Rank 2:
+Equation: mul(-0.030805965859466378, iqr_dev)
+Fitness: [Acc: 0.7871, Epochs: 15.75, Bloat: 3.0]
+
+Rank 3:
+Equation: mul(mul(mul(feat_kurtosis, iqr_dev), -0.0970277172177405), feat_kurtosis)
+Fitness: [Acc: 0.7860, Epochs: 14.95, Bloat: 7.0]
+
+Rank 4:
+Equation: -0.17388639299799658
+Fitness: [Acc: 0.7852, Epochs: 18.25, Bloat: 1.0]
+
+Rank 5:
+Equation: -0.07576007082690306
+Fitness: [Acc: 0.7848, Epochs: 16.15, Bloat: 1.0]
+
+Rank 6:
+Equation: neg(-0.030805965859466378)
+Fitness: [Acc: 0.7785, Epochs: 15.45, Bloat: 2.0]
+
+Rank 7:
+Equation: mul(mul(silhouette, -0.0970277172177405), feat_kurtosis)
+Fitness: [Acc: 0.7756, Epochs: 15.15, Bloat: 5.0]
+
+Rank 8:
+Equation: mul(-0.0970277172177405, iqr_dev)
+Fitness: [Acc: 0.7626, Epochs: 14.55, Bloat: 3.0]
+

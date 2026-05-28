@@ -1,0 +1,57 @@
+APPLIED COMPUTATIONAL INTELLIGENCE: MODULE 6 RESULTS
+Activation Function: RECTIFICATION
+Topology: shallow
+Status: CONSENSUS PARETO FRONT (aggregated across runs)
+Mode: Plan A Pareto (NSGA-II)
+========================================================================
+--- SYSTEM & ENVIRONMENT LOG ---
+Python Version: 3.12.13
+PyTorch Version: 2.5.0+cu124
+DEAP Version: 1.4
+Scikit-Learn Version: 1.8.0
+OS Platform: Linux-6.8.0-117-generic-x86_64-with-glibc2.39
+Hardware: x86_64 / x86_64
+Execution Target: CPU-ONLY (Phase A shallow FNN)
+PyTorch Threads -> intra_op: 4 | inter_op: 1
+Random Seed: 42
+Git Commit: 6510ae6ce7d4d6e474eeffd97c861b5e7f5de6cc
+--------------------------------
+========================================================================
+Population: 100 | Generations: 20
+Datasets/Rule: 20 | Batch: 64 | Topology: shallow
+========================================================================
+
+Top Discovered Rules-of-Thumb:
+
+Rank 1:
+Equation: sin(mul(sin(-0.024399443260241682), mul(n_d_ratio, iqr_dev)))
+Fitness: [Acc: 0.7951, Epochs: 18.25, Bloat: 7.0]
+
+Rank 2:
+Equation: mul(-0.02293629570124689, n_d_ratio)
+Fitness: [Acc: 0.7898, Epochs: 16.00, Bloat: 3.0]
+
+Rank 3:
+Equation: sin(mul(sin(-0.024399443260241682), mul(n_d_ratio, sin(0.8498959269112514))))
+Fitness: [Acc: 0.7886, Epochs: 15.70, Bloat: 8.0]
+
+Rank 4:
+Equation: neg(-0.02293629570124689)
+Fitness: [Acc: 0.7871, Epochs: 16.75, Bloat: 2.0]
+
+Rank 5:
+Equation: mul(feat_kurtosis, 0.029732636384331323)
+Fitness: [Acc: 0.7828, Epochs: 15.50, Bloat: 3.0]
+
+Rank 6:
+Equation: mul(n_d_ratio, 0.029732636384331323)
+Fitness: [Acc: 0.7822, Epochs: 15.45, Bloat: 3.0]
+
+Rank 7:
+Equation: neg(-0.012968330220737956)
+Fitness: [Acc: 0.7806, Epochs: 16.65, Bloat: 2.0]
+
+Rank 8:
+Equation: 0.039981668434591944
+Fitness: [Acc: 0.7803, Epochs: 16.70, Bloat: 1.0]
+

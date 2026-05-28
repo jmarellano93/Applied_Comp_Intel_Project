@@ -1,0 +1,5 @@
+QUALITATIVE ANALYSIS: RECTIFICATION / funnel — Rank 5
+Equation: -0.0297326363843313
+
+Empirical Partial Derivatives:
+  (expression is constant — no partial derivatives)

@@ -1,0 +1,65 @@
+APPLIED COMPUTATIONAL INTELLIGENCE: MODULE 6 RESULTS
+Activation Function: SMOOTH
+Topology: funnel
+Status: CHECKPOINT (Generation 5)
+Mode: Plan A Pareto (NSGA-II)
+========================================================================
+--- SYSTEM & ENVIRONMENT LOG ---
+Python Version: 3.12.13
+PyTorch Version: 2.5.0+cu124
+DEAP Version: 1.4
+Scikit-Learn Version: 1.8.0
+OS Platform: Linux-6.8.0-117-generic-x86_64-with-glibc2.39
+Hardware: x86_64 / x86_64
+Execution Target: CPU-ONLY (Phase A shallow FNN)
+PyTorch Threads -> intra_op: 4 | inter_op: 1
+Random Seed: 42
+Git Commit: 6510ae6ce7d4d6e474eeffd97c861b5e7f5de6cc
+--------------------------------
+========================================================================
+Population: 100 | Generations: 20
+Datasets/Rule: 20 | Batch: 64 | Topology: funnel
+========================================================================
+
+Top Discovered Rules-of-Thumb:
+
+Rank 1:
+Equation: mul(-0.30304738102421713, 0.029732636384331323)
+Fitness: [Acc: 0.7895, Epochs: 17.25, Bloat: 3.0]
+
+Rank 2:
+Equation: mul(iqr_dev, 0.029732636384331323)
+Fitness: [Acc: 0.7847, Epochs: 17.20, Bloat: 3.0]
+
+Rank 3:
+Equation: mul(neg(pc_eigen), 0.029732636384331323)
+Fitness: [Acc: 0.7844, Epochs: 16.65, Bloat: 4.0]
+
+Rank 4:
+Equation: sub(-0.30304738102421713, pc_eigen)
+Fitness: [Acc: 0.7798, Epochs: 16.05, Bloat: 3.0]
+
+Rank 5:
+Equation: mul(protected_log(target_entropy), 0.029732636384331323)
+Fitness: [Acc: 0.7794, Epochs: 15.45, Bloat: 4.0]
+
+Rank 6:
+Equation: mul(davies_bouldin, 0.029732636384331323)
+Fitness: [Acc: 0.7774, Epochs: 15.60, Bloat: 3.0]
+
+Rank 7:
+Equation: protected_sqrt(0.029732636384331323)
+Fitness: [Acc: 0.7772, Epochs: 18.90, Bloat: 2.0]
+
+Rank 8:
+Equation: mul(0.029732636384331323, hopkins)
+Fitness: [Acc: 0.7770, Epochs: 15.15, Bloat: 3.0]
+
+Rank 9:
+Equation: mul(iqr_dev, iqr_dev)
+Fitness: [Acc: 0.7694, Epochs: 14.85, Bloat: 3.0]
+
+Rank 10:
+Equation: pc_eigen
+Fitness: [Acc: 0.7571, Epochs: 18.45, Bloat: 1.0]
+

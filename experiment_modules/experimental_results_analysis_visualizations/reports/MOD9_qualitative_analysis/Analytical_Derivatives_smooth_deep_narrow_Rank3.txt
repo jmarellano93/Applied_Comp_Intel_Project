@@ -1,0 +1,5 @@
+QUALITATIVE ANALYSIS: SMOOTH / deep_narrow — Rank 3
+Equation: 0.0308059658594664
+
+Empirical Partial Derivatives:
+  (expression is constant — no partial derivatives)

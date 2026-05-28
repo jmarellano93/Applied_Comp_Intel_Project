@@ -1,0 +1,6 @@
+QUALITATIVE ANALYSIS: LINEAR / shallow — Rank 4
+Equation: sqrt(Abs(davies_bouldin - target_entropy**2*sqrt(Abs(davies_bouldin))))
+
+Empirical Partial Derivatives:
+  d(Variance) / d(target_entropy) = -target_entropy*sqrt(Abs(davies_bouldin))*sign(davies_bouldin - target_entropy**2*sqrt(Abs(davies_bouldin)))/sqrt(Abs(davies_bouldin - target_entropy**2*sqrt(Abs(davies_bouldin))))
+  d(Variance) / d(davies_bouldin) = (-target_entropy**2*sign(davies_bouldin)/(2*sqrt(Abs(davies_bouldin))) + 1)*sign(davies_bouldin - target_entropy**2*sqrt(Abs(davies_bouldin)))/(2*sqrt(Abs(davies_bouldin - target_entropy**2*sqrt(Abs(davies_bouldin)))))

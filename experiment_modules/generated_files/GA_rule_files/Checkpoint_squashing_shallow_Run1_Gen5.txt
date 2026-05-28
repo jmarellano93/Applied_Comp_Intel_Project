@@ -1,0 +1,45 @@
+APPLIED COMPUTATIONAL INTELLIGENCE: MODULE 6 RESULTS
+Activation Function: SQUASHING
+Topology: shallow
+Status: CHECKPOINT (Generation 5)
+Mode: Plan A Pareto (NSGA-II)
+========================================================================
+--- SYSTEM & ENVIRONMENT LOG ---
+Python Version: 3.12.13
+PyTorch Version: 2.5.0+cu124
+DEAP Version: 1.4
+Scikit-Learn Version: 1.8.0
+OS Platform: Linux-6.8.0-117-generic-x86_64-with-glibc2.39
+Hardware: x86_64 / x86_64
+Execution Target: CPU-ONLY (Phase A shallow FNN)
+PyTorch Threads -> intra_op: 4 | inter_op: 1
+Random Seed: 42
+Git Commit: 6510ae6ce7d4d6e474eeffd97c861b5e7f5de6cc
+--------------------------------
+========================================================================
+Population: 100 | Generations: 20
+Datasets/Rule: 20 | Batch: 64 | Topology: shallow
+========================================================================
+
+Top Discovered Rules-of-Thumb:
+
+Rank 1:
+Equation: neg(mul(0.04324848233346246, n_d_ratio))
+Fitness: [Acc: 0.7873, Epochs: 15.95, Bloat: 4.0]
+
+Rank 2:
+Equation: mul(-0.2137255810009948, 0.04324848233346246)
+Fitness: [Acc: 0.7823, Epochs: 17.20, Bloat: 3.0]
+
+Rank 3:
+Equation: mul(0.04324848233346246, iqr_dev)
+Fitness: [Acc: 0.7768, Epochs: 16.90, Bloat: 3.0]
+
+Rank 4:
+Equation: neg(0.022271747980667334)
+Fitness: [Acc: 0.7753, Epochs: 17.15, Bloat: 2.0]
+
+Rank 5:
+Equation: -0.053739634740514575
+Fitness: [Acc: 0.7737, Epochs: 17.20, Bloat: 1.0]
+

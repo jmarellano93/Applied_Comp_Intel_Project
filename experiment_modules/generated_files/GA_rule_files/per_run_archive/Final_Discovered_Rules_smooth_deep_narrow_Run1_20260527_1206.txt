@@ -1,0 +1,49 @@
+APPLIED COMPUTATIONAL INTELLIGENCE: MODULE 6 RESULTS
+Activation Function: SMOOTH
+Topology: deep_narrow
+Status: PER-RUN PARETO FRONT (Run 1)
+Mode: Plan A Pareto (NSGA-II)
+========================================================================
+--- SYSTEM & ENVIRONMENT LOG ---
+Python Version: 3.12.13
+PyTorch Version: 2.5.0+cu124
+DEAP Version: 1.4
+Scikit-Learn Version: 1.8.0
+OS Platform: Linux-6.8.0-117-generic-x86_64-with-glibc2.39
+Hardware: x86_64 / x86_64
+Execution Target: CPU-ONLY (Phase A shallow FNN)
+PyTorch Threads -> intra_op: 4 | inter_op: 1
+Random Seed: 42
+Git Commit: 6510ae6ce7d4d6e474eeffd97c861b5e7f5de6cc
+--------------------------------
+========================================================================
+Population: 100 | Generations: 20
+Datasets/Rule: 20 | Batch: 64 | Topology: deep_narrow
+========================================================================
+
+Top Discovered Rules-of-Thumb:
+
+Rank 1:
+Equation: mul(sin(sin(iqr_dev)), -0.11974264800417522)
+Fitness: [Acc: 0.8005, Epochs: 16.10, Bloat: 5.0]
+
+Rank 2:
+Equation: sin(0.022271747980667334)
+Fitness: [Acc: 0.7940, Epochs: 17.00, Bloat: 2.0]
+
+Rank 3:
+Equation: protected_log(cos(iqr_dev))
+Fitness: [Acc: 0.7889, Epochs: 15.90, Bloat: 3.0]
+
+Rank 4:
+Equation: mul(sin(-0.11974264800417522), iqr_dev)
+Fitness: [Acc: 0.7882, Epochs: 15.35, Bloat: 4.0]
+
+Rank 5:
+Equation: mul(iqr_dev, sin(-0.11974264800417522))
+Fitness: [Acc: 0.7882, Epochs: 15.35, Bloat: 4.0]
+
+Rank 6:
+Equation: -0.05588181930840008
+Fitness: [Acc: 0.7812, Epochs: 16.90, Bloat: 1.0]
+

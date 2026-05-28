@@ -1,0 +1,6 @@
+QUALITATIVE ANALYSIS: LINEAR / funnel — Rank 3
+Equation: exp(target_entropy/feat_kurtosis)
+
+Empirical Partial Derivatives:
+  d(Variance) / d(target_entropy) = exp(target_entropy/feat_kurtosis)/feat_kurtosis
+  d(Variance) / d(feat_kurtosis) = -target_entropy*exp(target_entropy/feat_kurtosis)/feat_kurtosis**2

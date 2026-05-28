@@ -1,0 +1,5 @@
+QUALITATIVE ANALYSIS: SMOOTH / deep_narrow — Rank 5
+Equation: log(Abs(cos(iqr_dev)) + 1/100000)
+
+Empirical Partial Derivatives:
+  d(Variance) / d(iqr_dev) = -sin(iqr_dev)*sign(cos(iqr_dev))/(Abs(cos(iqr_dev)) + 1/100000)

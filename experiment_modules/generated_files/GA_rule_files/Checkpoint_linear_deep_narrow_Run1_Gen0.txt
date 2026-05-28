@@ -1,0 +1,61 @@
+APPLIED COMPUTATIONAL INTELLIGENCE: MODULE 6 RESULTS
+Activation Function: LINEAR
+Topology: deep_narrow
+Status: CHECKPOINT (Generation 0)
+Mode: Plan A Pareto (NSGA-II)
+========================================================================
+--- SYSTEM & ENVIRONMENT LOG ---
+Python Version: 3.12.13
+PyTorch Version: 2.5.0+cu124
+DEAP Version: 1.4
+Scikit-Learn Version: 1.8.0
+OS Platform: Linux-6.8.0-117-generic-x86_64-with-glibc2.39
+Hardware: x86_64 / x86_64
+Execution Target: CPU-ONLY (Phase A shallow FNN)
+PyTorch Threads -> intra_op: 4 | inter_op: 1
+Random Seed: 42
+Git Commit: 6510ae6ce7d4d6e474eeffd97c861b5e7f5de6cc
+--------------------------------
+========================================================================
+Population: 100 | Generations: 20
+Datasets/Rule: 20 | Batch: 64 | Topology: deep_narrow
+========================================================================
+
+Top Discovered Rules-of-Thumb:
+
+Rank 1:
+Equation: mul(target_entropy, n_d_ratio)
+Fitness: [Acc: 0.7167, Epochs: 21.40, Bloat: 3.0]
+
+Rank 2:
+Equation: mul(protected_sqrt(target_entropy), mul(pc_eigen, hopkins))
+Fitness: [Acc: 0.7040, Epochs: 21.25, Bloat: 6.0]
+
+Rank 3:
+Equation: neg(n_d_ratio)
+Fitness: [Acc: 0.7017, Epochs: 22.65, Bloat: 2.0]
+
+Rank 4:
+Equation: mul(n_d_ratio, hopkins)
+Fitness: [Acc: 0.7007, Epochs: 21.15, Bloat: 3.0]
+
+Rank 5:
+Equation: sin(target_entropy)
+Fitness: [Acc: 0.7002, Epochs: 22.55, Bloat: 2.0]
+
+Rank 6:
+Equation: sin(mul(n_d_ratio, feat_kurtosis))
+Fitness: [Acc: 0.6995, Epochs: 20.35, Bloat: 4.0]
+
+Rank 7:
+Equation: sin(0.8657897968729671)
+Fitness: [Acc: 0.6885, Epochs: 22.45, Bloat: 2.0]
+
+Rank 8:
+Equation: sin(feat_kurtosis)
+Fitness: [Acc: 0.6864, Epochs: 21.05, Bloat: 2.0]
+
+Rank 9:
+Equation: neg(add(iqr_dev, feat_kurtosis))
+Fitness: [Acc: 0.6751, Epochs: 20.25, Bloat: 4.0]
+

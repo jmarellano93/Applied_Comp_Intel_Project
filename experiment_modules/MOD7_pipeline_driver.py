@@ -75,7 +75,7 @@ class DriverMatrixConfig(BaseModel):
     )
     rule_directory: Path = Field(default_factory=_default_rule_directory)
     activation_targets: List[str] = Field(
-        default=["rectification", "smooth", "aggregation", "squashing", "linear", "trigonometric"],
+        default=["rectification", "smooth", "aggregation", "squashing", "linear"],
         description="Order: best-performing activations first, partial-coverage (trigonometric) last "
                     "so its expected 'no artifacts' warnings cluster at the end of the log.",
     )

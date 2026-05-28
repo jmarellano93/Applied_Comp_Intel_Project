@@ -1,0 +1,7 @@
+QUALITATIVE ANALYSIS: SQUASHING / deep_narrow — Rank 4
+Equation: 0.0297326363843313*cos(sin(davies_bouldin + silhouette + exp(pc_eigen)))
+
+Empirical Partial Derivatives:
+  d(Variance) / d(pc_eigen) = -0.0297326363843313*exp(pc_eigen)*sin(sin(davies_bouldin + silhouette + exp(pc_eigen)))*cos(davies_bouldin + silhouette + exp(pc_eigen))
+  d(Variance) / d(davies_bouldin) = -0.0297326363843313*sin(sin(davies_bouldin + silhouette + exp(pc_eigen)))*cos(davies_bouldin + silhouette + exp(pc_eigen))
+  d(Variance) / d(silhouette) = -0.0297326363843313*sin(sin(davies_bouldin + silhouette + exp(pc_eigen)))*cos(davies_bouldin + silhouette + exp(pc_eigen))

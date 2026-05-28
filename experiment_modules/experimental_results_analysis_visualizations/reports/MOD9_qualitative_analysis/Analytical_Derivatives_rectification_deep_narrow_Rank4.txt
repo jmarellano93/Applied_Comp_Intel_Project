@@ -1,0 +1,5 @@
+QUALITATIVE ANALYSIS: RECTIFICATION / deep_narrow — Rank 4
+Equation: 0.0297326363843313*pc_eigen - 0.00557273290319536
+
+Empirical Partial Derivatives:
+  d(Variance) / d(pc_eigen) = 0.0297326363843313

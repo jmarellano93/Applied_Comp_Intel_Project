@@ -1,0 +1,5 @@
+QUALITATIVE ANALYSIS: SQUASHING / shallow — Rank 2
+Equation: -0.0308059658594664*sqrt(Abs(target_entropy))
+
+Empirical Partial Derivatives:
+  d(Variance) / d(target_entropy) = -0.0154029829297332*sign(target_entropy)/sqrt(Abs(target_entropy))

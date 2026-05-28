@@ -1,0 +1,5 @@
+QUALITATIVE ANALYSIS: AGGREGATION / funnel — Rank 1
+Equation: 0.00111964582576813
+
+Empirical Partial Derivatives:
+  (expression is constant — no partial derivatives)

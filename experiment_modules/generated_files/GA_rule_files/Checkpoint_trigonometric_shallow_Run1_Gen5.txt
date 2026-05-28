@@ -1,0 +1,41 @@
+APPLIED COMPUTATIONAL INTELLIGENCE: MODULE 6 RESULTS
+Activation Function: TRIGONOMETRIC
+Topology: shallow
+Status: CHECKPOINT (Generation 5)
+Mode: Plan A Pareto (NSGA-II)
+========================================================================
+--- SYSTEM & ENVIRONMENT LOG ---
+Python Version: 3.12.13
+PyTorch Version: 2.5.0+cu124
+DEAP Version: 1.4
+Scikit-Learn Version: 1.8.0
+OS Platform: Linux-6.8.0-117-generic-x86_64-with-glibc2.39
+Hardware: x86_64 / x86_64
+Execution Target: CPU-ONLY (Phase A shallow FNN)
+PyTorch Threads -> intra_op: 4 | inter_op: 1
+Random Seed: 42
+Git Commit: 6510ae6ce7d4d6e474eeffd97c861b5e7f5de6cc
+--------------------------------
+========================================================================
+Population: 100 | Generations: 20
+Datasets/Rule: 20 | Batch: 64 | Topology: shallow
+========================================================================
+
+Top Discovered Rules-of-Thumb:
+
+Rank 1:
+Equation: sub(pc_eigen, iqr_dev)
+Fitness: [Acc: 0.7864, Epochs: 16.00, Bloat: 3.0]
+
+Rank 2:
+Equation: protected_log(-0.8633875101797621)
+Fitness: [Acc: 0.6850, Epochs: 23.40, Bloat: 2.0]
+
+Rank 3:
+Equation: protected_log(silhouette)
+Fitness: [Acc: 0.5698, Epochs: 23.30, Bloat: 2.0]
+
+Rank 4:
+Equation: iqr_dev
+Fitness: [Acc: 0.5676, Epochs: 25.90, Bloat: 1.0]
+

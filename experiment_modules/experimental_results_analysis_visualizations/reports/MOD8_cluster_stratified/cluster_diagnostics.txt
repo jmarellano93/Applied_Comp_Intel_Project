@@ -1,0 +1,44 @@
+======================================================================
+MOD8 CLUSTER DIAGNOSTICS
+======================================================================
+Normalization source: phase_a_mod2
+Phase B dataset count: 25
+K selected:            3
+
+Silhouette scores (higher = better-separated clusters):
+  K=2: silhouette=0.3796  inertia=45.10
+  K=3: silhouette=0.4240  inertia=28.89  <- selected
+  K=4: silhouette=0.3464  inertia=20.19
+  K=5: silhouette=0.3549  inertia=16.00
+
+Cluster sizes (selected K):
+  Cluster 0: 3 datasets
+  Cluster 1: 10 datasets
+  Cluster 2: 12 datasets
+
+Dataset assignments (did -> cluster):
+  did=    14  cluster=1  name=mfeat-fourier
+  did=    15  cluster=2  name=breast-w
+  did=    16  cluster=1  name=mfeat-karhunen
+  did=    18  cluster=1  name=mfeat-morphological
+  did=    29  cluster=2  name=credit-approval
+  did=    31  cluster=2  name=credit-g
+  did=    54  cluster=1  name=vehicle
+  did=   307  cluster=1  name=vowel
+  did=   458  cluster=1  name=analcatdata
+  did=  1063  cluster=2  name=kc2
+  did=  1067  cluster=2  name=kc1
+  did=  1068  cluster=2  name=pc1
+  did=  1462  cluster=0  name=banknote-authentication
+  did=  1464  cluster=2  name=blood-transfusion-service-center
+  did=  1475  cluster=1  name=first-order-theorem-proving
+  did=  1480  cluster=2  name=ilpd
+  did=  1487  cluster=2  name=ozone-level-8hr
+  did=  1489  cluster=0  name=phoneme
+  did=  1494  cluster=2  name=qsar-biodeg
+  did=  1510  cluster=2  name=wdbc
+  did=  4534  cluster=0  name=PhishingWebsites
+  did=  4538  cluster=1  name=GesturePhaseSegmentationProcessed
+  did=  6332  cluster=2  name=cylinder-bands
+  did= 40499  cluster=1  name=texture
+  did= 40966  cluster=1  name=MiceProtein

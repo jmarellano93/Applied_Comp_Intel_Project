@@ -1,0 +1,6 @@
+QUALITATIVE ANALYSIS: RECTIFICATION / deep_narrow — Rank 3
+Equation: 0.091837715145637*feat_kurtosis*sin(iqr_dev)
+
+Empirical Partial Derivatives:
+  d(Variance) / d(feat_kurtosis) = 0.091837715145637*sin(iqr_dev)
+  d(Variance) / d(iqr_dev) = 0.091837715145637*feat_kurtosis*cos(iqr_dev)

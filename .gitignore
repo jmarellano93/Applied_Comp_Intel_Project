@@ -1,0 +1,15 @@
+# Dataset cache (regenerated on demand, never persisted meaningfully)
+experiment_modules/openml_cc18_datasets/
+
+# Python caches and environments
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Slurm logs
+logs/
+
+# OS/IDE cruft
+.DS_Store
+.idea/

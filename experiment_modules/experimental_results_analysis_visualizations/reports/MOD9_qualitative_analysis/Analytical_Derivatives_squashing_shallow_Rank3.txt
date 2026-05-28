@@ -1,0 +1,5 @@
+QUALITATIVE ANALYSIS: SQUASHING / shallow — Rank 3
+Equation: -0.00729057326381466
+
+Empirical Partial Derivatives:
+  (expression is constant — no partial derivatives)

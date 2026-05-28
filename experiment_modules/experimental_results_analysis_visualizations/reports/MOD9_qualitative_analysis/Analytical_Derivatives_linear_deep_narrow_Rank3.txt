@@ -1,0 +1,7 @@
+QUALITATIVE ANALYSIS: LINEAR / deep_narrow — Rank 3
+Equation: feat_kurtosis*n_d_ratio*target_entropy
+
+Empirical Partial Derivatives:
+  d(Variance) / d(target_entropy) = feat_kurtosis*n_d_ratio
+  d(Variance) / d(feat_kurtosis) = n_d_ratio*target_entropy
+  d(Variance) / d(n_d_ratio) = feat_kurtosis*target_entropy
