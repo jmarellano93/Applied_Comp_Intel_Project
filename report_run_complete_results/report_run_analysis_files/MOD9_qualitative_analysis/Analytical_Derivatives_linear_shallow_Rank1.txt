@@ -1,6 +1,0 @@
-QUALITATIVE ANALYSIS: LINEAR / shallow — Rank 1
-Equation: n_d_ratio - exp(pc_eigen)
-
-Empirical Partial Derivatives:
-  d(Variance) / d(pc_eigen) = -exp(pc_eigen)
-  d(Variance) / d(n_d_ratio) = 1

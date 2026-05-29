@@ -1,5 +1,0 @@
-QUALITATIVE ANALYSIS: SQUASHING / funnel — Rank 3
-Equation: -0.0125921576985643
-
-Empirical Partial Derivatives:
-  (expression is constant — no partial derivatives)

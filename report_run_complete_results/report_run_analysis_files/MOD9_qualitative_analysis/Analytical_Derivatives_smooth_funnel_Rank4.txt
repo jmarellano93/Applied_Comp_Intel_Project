@@ -1,8 +1,0 @@
-QUALITATIVE ANALYSIS: SMOOTH / funnel — Rank 4
-Equation: hopkins*iqr_dev*n_d_ratio*pc_eigen
-
-Empirical Partial Derivatives:
-  d(Variance) / d(hopkins) = iqr_dev*n_d_ratio*pc_eigen
-  d(Variance) / d(pc_eigen) = hopkins*iqr_dev*n_d_ratio
-  d(Variance) / d(n_d_ratio) = hopkins*iqr_dev*pc_eigen
-  d(Variance) / d(iqr_dev) = hopkins*n_d_ratio*pc_eigen

@@ -1,5 +1,0 @@
-QUALITATIVE ANALYSIS: SMOOTH / shallow — Rank 1
-Equation: log((Abs(n_d_ratio) + 1/100000)**(-0.0308059658594664))
-
-Empirical Partial Derivatives:
-  d(Variance) / d(n_d_ratio) = -0.0308059658594664*sign(n_d_ratio)/(Abs(n_d_ratio) + 1/100000)**1.0

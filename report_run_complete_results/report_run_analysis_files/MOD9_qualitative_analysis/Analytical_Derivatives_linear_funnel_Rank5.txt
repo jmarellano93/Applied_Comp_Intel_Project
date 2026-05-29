@@ -1,5 +1,0 @@
-QUALITATIVE ANALYSIS: LINEAR / funnel — Rank 5
-Equation: silhouette
-
-Empirical Partial Derivatives:
-  d(Variance) / d(silhouette) = 1

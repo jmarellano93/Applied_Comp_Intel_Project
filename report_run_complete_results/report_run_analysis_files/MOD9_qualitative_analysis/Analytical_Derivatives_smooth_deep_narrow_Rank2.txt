@@ -1,5 +1,0 @@
-QUALITATIVE ANALYSIS: SMOOTH / deep_narrow — Rank 2
-Equation: -0.0308059658594664*silhouette
-
-Empirical Partial Derivatives:
-  d(Variance) / d(silhouette) = -0.0308059658594664
