@@ -1,0 +1,57 @@
+APPLIED COMPUTATIONAL INTELLIGENCE: MODULE 6 RESULTS
+Activation Function: SQUASHING
+Topology: deep_narrow
+Status: CHECKPOINT (Generation 10)
+Mode: Plan A Pareto (NSGA-II)
+========================================================================
+--- SYSTEM & ENVIRONMENT LOG ---
+Python Version: 3.12.13
+PyTorch Version: 2.5.0+cu124
+DEAP Version: 1.4
+Scikit-Learn Version: 1.8.0
+OS Platform: Linux-6.8.0-117-generic-x86_64-with-glibc2.39
+Hardware: x86_64 / x86_64
+Execution Target: CPU-ONLY (Phase A shallow FNN)
+PyTorch Threads -> intra_op: 4 | inter_op: 1
+Random Seed: 42
+Git Commit: 6510ae6ce7d4d6e474eeffd97c861b5e7f5de6cc
+--------------------------------
+========================================================================
+Population: 100 | Generations: 20
+Datasets/Rule: 20 | Batch: 64 | Topology: deep_narrow
+========================================================================
+
+Top Discovered Rules-of-Thumb:
+
+Rank 1:
+Equation: sub(protected_sqrt(cos(0.4113348935199814)), cos(-0.4136434371858142))
+Fitness: [Acc: 0.7861, Epochs: 17.30, Bloat: 6.0]
+
+Rank 2:
+Equation: sin(-0.02293629570124689)
+Fitness: [Acc: 0.7813, Epochs: 16.95, Bloat: 2.0]
+
+Rank 3:
+Equation: neg(-0.02293629570124689)
+Fitness: [Acc: 0.7809, Epochs: 16.90, Bloat: 2.0]
+
+Rank 4:
+Equation: mul(protected_log(0.4113348935199814), -0.030805965859466378)
+Fitness: [Acc: 0.7800, Epochs: 16.35, Bloat: 4.0]
+
+Rank 5:
+Equation: cos(protected_exp(0.4113348935199814))
+Fitness: [Acc: 0.7786, Epochs: 16.35, Bloat: 3.0]
+
+Rank 6:
+Equation: neg(-0.030805965859466378)
+Fitness: [Acc: 0.7781, Epochs: 15.30, Bloat: 2.0]
+
+Rank 7:
+Equation: neg(protected_log(cos(-0.24144706393241244)))
+Fitness: [Acc: 0.7759, Epochs: 15.15, Bloat: 4.0]
+
+Rank 8:
+Equation: -0.02336735749173524
+Fitness: [Acc: 0.7755, Epochs: 16.75, Bloat: 1.0]
+

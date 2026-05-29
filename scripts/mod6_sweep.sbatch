@@ -2,7 +2,6 @@
 # ============================================================================
 # MOD6 long-run sweep on FHNW Calculon  (per-seed job array)
 # ----------------------------------------------------------------------------
-# Author : John M. Arellano
 # Layout : 51-task job array  (17 pairs × 3 seeds per pair).
 #          The (rectification, shallow) pair is excluded because a consensus
 #          artifact for it already exists in generated_files/GA_rule_files/.
@@ -39,7 +38,7 @@
 #SBATCH --output=logs/mod6_%A_%a.log
 #SBATCH --error=logs/mod6_%A_%a.err
 #SBATCH --mail-type=END,FAIL
-#SBATCH --mail-user=john.arellano@students.fhnw.ch
+#SBATCH --mail-user=FHNW_EMAIL_ADDRESS_HERE
 
 # ----------------------------------------------------------------------------
 # Decode task ID into (activation, topology, seed)

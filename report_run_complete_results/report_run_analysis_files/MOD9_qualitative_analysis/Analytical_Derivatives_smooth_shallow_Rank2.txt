@@ -1,0 +1,5 @@
+QUALITATIVE ANALYSIS: SMOOTH / shallow — Rank 2
+Equation: -0.012968330220738*sqrt(Abs(target_entropy))
+
+Empirical Partial Derivatives:
+  d(Variance) / d(target_entropy) = -0.00648416511036898*sign(target_entropy)/sqrt(Abs(target_entropy))

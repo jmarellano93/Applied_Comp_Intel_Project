@@ -1,0 +1,5 @@
+QUALITATIVE ANALYSIS: LINEAR / deep_narrow — Rank 2
+Equation: 0.149943969093358*sqrt(Abs(n_d_ratio))
+
+Empirical Partial Derivatives:
+  d(Variance) / d(n_d_ratio) = 0.0749719845466789*sign(n_d_ratio)/sqrt(Abs(n_d_ratio))

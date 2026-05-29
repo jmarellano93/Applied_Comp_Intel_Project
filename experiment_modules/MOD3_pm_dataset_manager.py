@@ -29,12 +29,12 @@ MODULE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # =============================================================================
 # FUNCTIONAL BLOCK: Cache Configuration
-# 4A) WHAT IT DOES: Maps paths and sets fundamental topological bounds for testing.
-# 4B) PARAMETERS: test_size (0.2), random_seed (42).
-# 4C) METHODOLOGICAL JUSTIFICATION:
-#     - test_size=0.2 enforces the standard 80/20 Pareto principle for Train/Test
-#       splits. This ratio guarantees the network has enough dense data to converge,
-#       while providing a sufficiently large validation set to prove generalization.
+# WHAT IT DOES: Maps paths and sets fundamental topological bounds for testing.
+# PARAMETERS: test_size (0.2), random_seed (42).
+# METHODOLOGICAL JUSTIFICATION:
+#  - test_size=0.2 enforces the standard 80/20 Pareto principle for Train/Test
+#    splits. This ratio guarantees the network has enough dense data to converge,
+#    while providing a sufficiently large validation set to prove generalization.
 # =============================================================================
 class CacheConfig(BaseModel):
     module_dir: str = Field(default=MODULE_DIR, description="Dynamically resolved directory of the current module.")
@@ -62,6 +62,19 @@ class CacheConfig(BaseModel):
         return self
 
 
+# =============================================================================
+# FUNCTIONAL BLOCK: Dataset Manager (Caching, Preprocessing, Tensor Conversion)
+# WHAT IT IS: The class that loads, cleans, splits, and caches each dataset as
+#     leakage-free tensors.
+# WHAT IT DOES: Reads a dataset offline, fits a Phase-A-only preprocessing
+#     pipeline, applies the stored normalisation parameters, and returns train/
+#     validation tensors plus the meta-feature vector.
+# HOW IT DOES IT: DatasetManager parses the semicolon CSV, builds a
+#     fit-on-train-only ColumnTransformer, encodes targets to int64, loads the
+#     z-score parameters when present (falling back to raw values otherwise),
+#     and memoises the result per dataset id.
+# =============================================================================
+
 class DatasetManager:
     def __init__(self, config: CacheConfig):
         self.cfg = config
@@ -84,16 +97,16 @@ class DatasetManager:
 
     # =============================================================================
     # FUNCTIONAL BLOCK: Normalization Parameter Loading
-    # 4A) WHAT IT DOES: Reads MOD2-produced normalization params (per-feature
+    # WHAT IT DOES: Reads MOD2-produced normalization params (per-feature
     #     mean, std fit on Phase A only) and stores them as instance arrays.
-    # 4B) PARAMETERS: None (uses self.cfg.norm_params_path).
-    # 4C) METHODOLOGICAL JUSTIFICATION: Applying identical (mean, std) to both
+    # PARAMETERS: None (uses self.cfg.norm_params_path).
+    # METHODOLOGICAL JUSTIFICATION: Applying identical (mean, std) to both
     #     Phase A and Phase B at cache load time guarantees the GP terminal-set
     #     values seen during discovery match those seen during validation
     #     under the same affine transform, with fit parameters derived from
     #     Phase A only (no distributional leakage). When the params file is
     #     absent the manager falls back to raw values with a warning, preserving
-    #     compatibility with legacy rule artifacts produced before normalization
+    #     compatibility with rule artifacts produced before normalization
     #     was introduced.
     # =============================================================================
     def _load_normalization_params(self) -> None:
@@ -162,13 +175,13 @@ class DatasetManager:
 
     # =============================================================================
     # FUNCTIONAL BLOCK: Preprocessing Pipeline Construction
-    # 4A) WHAT IT DOES: Imputes missing values, encodes categories, and scales features.
-    # 4B) PARAMETERS: strategy="median", strategy="most_frequent", handle_unknown="use_encoded_value".
-    # 4C) METHODOLOGICAL JUSTIFICATION:
+    # WHAT IT DOES: Imputes missing values, encodes categories, and scales features.
+    # PARAMETERS: strategy="median", strategy="most_frequent", handle_unknown="use_encoded_value".
+    # METHODOLOGICAL JUSTIFICATION:
     #     - Median imputation is used rather than Mean because it is statistically robust
     #       to extreme numerical outliers.
     #     - StandardScaler mathematically restricts inputs to a Gaussian distribution (mean=0, std=1).
-    #       This is absolutely mandatory for Neural Networks to prevent catastrophic gradient
+    #       This is required for Neural Networks to prevent severe gradient
     #       explosion and to ensure stable initial weight distributions.
     # =============================================================================
     def build_preprocessing_pipeline(self, X: pd.DataFrame) -> ColumnTransformer:

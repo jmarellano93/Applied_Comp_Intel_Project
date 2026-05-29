@@ -1,0 +1,5 @@
+QUALITATIVE ANALYSIS: SMOOTH / shallow — Rank 3
+Equation: -0.012968330220738*pc_eigen
+
+Empirical Partial Derivatives:
+  d(Variance) / d(pc_eigen) = -0.0129683302207380

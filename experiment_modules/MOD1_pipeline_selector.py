@@ -21,25 +21,27 @@ logger = logging.getLogger(__name__)
 
 # =============================================================================
 # FUNCTIONAL BLOCK: Pipeline Configuration
-# 4A) WHAT IT DOES: Validates and stores the absolute mathematical boundaries
-#     and architectural paths for dataset ingestion.
-# 4B) PARAMETERS:
-#     - min_instances (500)
-#     - max_instances (15000)
-#     - max_features (200)
-# 4C) METHODOLOGICAL JUSTIFICATION:
-#     - min_instances (500): Guarantees that after an 80/20 Train/Test split,
-#       the neural network still receives at least 400 training samples, preventing
-#       severe data starvation and stochastic gradient noise.
-#     - max_instances (15000): Caps the upper bound to prevent the $O(N^2)$ time
-#       complexity of spatial meta-feature extraction (like Hopkins statistic)
-#       from stalling the pipeline.
-#     - max_features (200): Phase A architectures have a 64-neuron input bound.
-#       Restricting features to <= 200 ensures we do not force massive, destructive
-#       compression bottlenecks in the first layer.
+# WHAT IT DOES: Validates and stores the absolute mathematical boundaries
+#  and architectural paths for dataset ingestion.
+# PARAMETERS:
+#  - min_instances (500)
+#  - max_instances (15000)
+#  - max_features (200)
+# METHODOLOGICAL JUSTIFICATION:
+#  - min_instances (500): Guarantees that after an 80/20 Train/Test split,
+#    the neural network still receives at least 400 training samples, preventing
+#    severe data starvation and stochastic gradient noise.
+#  - max_instances (15000): Caps the upper bound to prevent the $O(N^2)$ time
+#    complexity of spatial meta-feature extraction (like Hopkins statistic)
+#    from stalling the pipeline.
+#  - max_features (200): Phase A architectures have a 64-neuron input bound.
+#    Restricting features to <= 200 ensures we do not force massive, destructive
+#    compression bottlenecks in the first layer.
+#  - OPENML API-KEY: Paste the API-Key associated with your OPENML account.
+
 # =============================================================================
 class PipelineConfig(BaseModel):
-    api_key: str = Field(default="13d5e3978a2db3c8e91409ca7e75b7bd", description="OpenML API Key")
+    api_key: str = Field(default="OPENML_API_KEY_HERE", description="OpenML API Key")
     suite_id: int = Field(default=99, description="OpenML Suite ID for CC18 Curated Classification")
 
     min_instances: int = Field(default=500, description="Minimum allowed instances (rows)")
@@ -64,12 +66,12 @@ def setup_directories(config: PipelineConfig) -> None:
 
 # =============================================================================
 # FUNCTIONAL BLOCK: Metadata Fetching & Filtering
-# 4A) WHAT IT DOES: Downloads the CC18 suite metadata and drops datasets that
-#     violate our dimensional constraints via vectorized pandas operations.
-# 4B) PARAMETERS: Requires a valid PipelineConfig containing threshold parameters.
-# 4C) METHODOLOGICAL JUSTIFICATION: Filtering the metadata *before* executing
-#     the physical data download prevents massive network I/O waste, blocking
-#     gigabytes of unusable data (like raw image matrices) from consuming local RAM.
+# WHAT IT DOES: Downloads the CC18 suite metadata and drops datasets that
+#  violate our dimensional constraints via vectorized pandas operations.
+# PARAMETERS: Requires a valid PipelineConfig containing threshold parameters.
+# METHODOLOGICAL JUSTIFICATION: Filtering the metadata *before* executing
+#  the physical data download prevents massive network I/O waste, blocking
+#  gigabytes of unusable data (like raw image matrices) from consuming local RAM.
 # =============================================================================
 def fetch_and_filter_metadata(config: PipelineConfig) -> pd.DataFrame:
     openml.config.apikey = config.api_key
@@ -98,13 +100,13 @@ def fetch_and_filter_metadata(config: PipelineConfig) -> pd.DataFrame:
 
 # =============================================================================
 # FUNCTIONAL BLOCK: Dataset Download & Initial Cleaning
-# 4A) WHAT IT DOES: Downloads the CSV, drops NaN rows, and strips zero-variance columns.
-# 4B) PARAMETERS: did (OpenML ID), name (Dataset Name), config (PipelineConfig).
-# 4C) METHODOLOGICAL JUSTIFICATION:
-#     - Dropping NaNs at the row level prevents structural failures during spatial calculations.
-#     - Dropping zero-variance (constant) columns is mathematically required because
-#       a constant feature provides zero information gain for gradient descent and
-#       causes division-by-zero crashes during StandardScaler operations later.
+# WHAT IT DOES: Downloads the CSV, drops NaN rows, and strips zero-variance columns.
+# PARAMETERS: did (OpenML ID), name (Dataset Name), config (PipelineConfig).
+# METHODOLOGICAL JUSTIFICATION:
+#  - Dropping NaNs at the row level prevents structural failures during spatial calculations.
+#  - Dropping zero-variance (constant) columns is mathematically required because
+#    a constant feature provides zero information gain for gradient descent and
+#    causes division-by-zero crashes during StandardScaler operations later.
 # =============================================================================
 def download_and_process_dataset(did: int, name: str, config: PipelineConfig) -> Dict[str, Any]:
     log_entry = {

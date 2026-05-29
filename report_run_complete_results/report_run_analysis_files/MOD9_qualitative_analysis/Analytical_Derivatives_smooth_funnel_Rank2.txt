@@ -1,0 +1,5 @@
+QUALITATIVE ANALYSIS: SMOOTH / funnel — Rank 2
+Equation: -0.0587513001999703
+
+Empirical Partial Derivatives:
+  (expression is constant — no partial derivatives)

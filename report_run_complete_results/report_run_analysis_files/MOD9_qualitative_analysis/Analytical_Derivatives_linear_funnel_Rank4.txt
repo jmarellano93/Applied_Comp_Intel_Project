@@ -1,0 +1,6 @@
+QUALITATIVE ANALYSIS: LINEAR / funnel — Rank 4
+Equation: hopkins/iqr_dev
+
+Empirical Partial Derivatives:
+  d(Variance) / d(hopkins) = 1/iqr_dev
+  d(Variance) / d(iqr_dev) = -hopkins/iqr_dev**2

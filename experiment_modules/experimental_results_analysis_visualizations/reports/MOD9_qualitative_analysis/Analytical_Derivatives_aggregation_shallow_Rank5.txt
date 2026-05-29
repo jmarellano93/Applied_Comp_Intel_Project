@@ -1,5 +1,0 @@
-QUALITATIVE ANALYSIS: AGGREGATION / shallow — Rank 5
-Equation: 0.0297326363843313*silhouette
-
-Empirical Partial Derivatives:
-  d(Variance) / d(silhouette) = 0.0297326363843313

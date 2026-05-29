@@ -1,0 +1,5 @@
+QUALITATIVE ANALYSIS: SQUASHING / shallow — Rank 1
+Equation: 0.0432484823334625*n_d_ratio
+
+Empirical Partial Derivatives:
+  d(Variance) / d(n_d_ratio) = 0.0432484823334625

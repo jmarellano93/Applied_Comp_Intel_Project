@@ -22,10 +22,10 @@ warnings.filterwarnings("ignore")
 
 # =============================================================================
 # FUNCTIONAL BLOCK: Custom Activation Representatives
-# 4A) WHAT IT DOES: Maps string tokens to PyTorch native activation modules,
+# WHAT IT DOES: Maps string tokens to PyTorch native activation modules,
 #     including a custom Sine activation for periodic feature mappings.
-# 4B) PARAMETERS: activation_name (e.g., "linear", "rectification", "smooth").
-# 4C) METHODOLOGICAL JUSTIFICATION: Strict boundary mapping prevents the outer
+# PARAMETERS: activation_name (e.g., "linear", "rectification", "smooth").
+# METHODOLOGICAL JUSTIFICATION: Strict boundary mapping prevents the outer
 #     Genetic Algorithm from proposing invalid string tokens that would crash
 #     the PyTorch execution graph. GELU ("smooth") is used as the fallback
 #     standard due to its non-zero gradient properties for negative inputs.
@@ -49,10 +49,10 @@ def get_activation(activation_name: str) -> nn.Module:
 
 # =============================================================================
 # FUNCTIONAL BLOCK: Topology Definitions & Factory
-# 4A) WHAT IT DOES: Defines the FNN architectures (Shallow, Deep Narrow, Funnel)
+# WHAT IT DOES: Defines the FNN architectures (Shallow, Deep Narrow, Funnel)
 #     and provides a factory pattern to instantiate them based on arguments.
-# 4B) PARAMETERS: input_dim (dataset features), num_classes (target categories).
-# 4C) METHODOLOGICAL JUSTIFICATION: Hardcoding network architectures (e.g.,
+# PARAMETERS: input_dim (dataset features), num_classes (target categories).
+# METHODOLOGICAL JUSTIFICATION: Hardcoding network architectures (e.g.,
 #     exactly 2 layers of 64 neurons for Phase A) ensures that the initialization
 #     variance is the *only* independent variable affecting the convergence
 #     trajectory, providing strict experimental control for the heuristic evaluation.
@@ -113,10 +113,10 @@ def _build_fnn_model(
 
 # =============================================================================
 # FUNCTIONAL BLOCK: Legacy Evaluator
-# 4A) WHAT IT DOES: Provides a single-shot execution context for compiling and
+# WHAT IT DOES: Provides a single-shot execution context for compiling and
 #     evaluating a PyTorch model. Evaluates fitness per individual.
-# 4B) PARAMETERS: sigma_squared, max_epochs, target_acc, batch_size.
-# 4C) METHODOLOGICAL JUSTIFICATION: This legacy evaluator is maintained strictly
+# PARAMETERS: sigma_squared, max_epochs, target_acc, batch_size.
+# METHODOLOGICAL JUSTIFICATION: This single-shot evaluator is maintained strictly
 #     to provide API compatibility for isolated validation environments and tests
 #     that do not require the high-throughput amortized pooling of FNNTrainer.
 # =============================================================================
@@ -227,10 +227,10 @@ class PyTorchEvaluator:
 
 # =============================================================================
 # FUNCTIONAL BLOCK: Pool-Friendly Evaluator (FNNTrainer)
-# 4A) WHAT IT DOES: A stateful CPU trainer reused across thousands of weight
+# WHAT IT DOES: A stateful CPU trainer reused across thousands of weight
 #     initializations. Amortizes dataset binding and DataLoader instantiation.
-# 4B) PARAMETERS: dataset_dict, activation_name, topology, max_epochs, batch_size.
-# 4C) METHODOLOGICAL JUSTIFICATION: In standard execution, instantiating a model
+# PARAMETERS: dataset_dict, activation_name, topology, max_epochs, batch_size.
+# METHODOLOGICAL JUSTIFICATION: In standard execution, instantiating a model
 #     and moving data to device carries an O(N) overhead. By allocating the model
 #     and dataset tensors in contiguous memory once, and simply calling `reset_weights`
 #     per individual, the CPU focuses strictly on matrix multiplication, drastically

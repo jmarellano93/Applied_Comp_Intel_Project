@@ -1,5 +1,0 @@
-QUALITATIVE ANALYSIS: RECTIFICATION / shallow — Rank 4
-Equation: 0.0229362957012469
-
-Empirical Partial Derivatives:
-  (expression is constant — no partial derivatives)

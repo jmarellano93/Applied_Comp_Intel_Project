@@ -2,7 +2,7 @@
 
 Verifies:
     * Numeric helpers (cliffs_delta, bootstrap, holm) on synthetic data.
-    * FailureModeTaxonomist on the real 75 MOD9 equations extracted from
+    * FailureModeTaxonomist on the 72 MOD9 equations extracted from
       the user's repository export. Prints the distribution of categories.
     * HeDistanceAnalyzer pipeline on synthetic data with the known
       consensus Rank-1 rules.
@@ -72,7 +72,7 @@ assert stat == 0.0 and p == 1.0, "zero-diff should short-circuit to (0.0, 1.0) p
 print("  safe_wilcoxon: OK  (zero-diff short-circuit)")
 
 # ============================================================================
-# 2. TAXONOMY — against the REAL 75 MOD9 equations
+# 2. TAXONOMY - against the 72 MOD9 equations
 # ============================================================================
 print()
 print("=" * 70)

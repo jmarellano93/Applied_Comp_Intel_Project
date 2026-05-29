@@ -13,13 +13,13 @@ across the Phase A dataset bench, then substitutes those values for
 non-dominant symbols in the rule. Dominant symbols (top-2 by gradient
 magnitude at the empirical mean) become the free axes of the surface plot.
 
-Critical bug fixes versus the previous version:
-    * The SymPy parser now includes ``sin``/``cos`` keys directly. The
-      previous code rewrote ``math.sin → sp.sin`` via string replacement,
-      but MOD6's rule files emit bare ``sin(...)`` / ``cos(...)`` (because
-      DEAP uses ``func.__name__`` for primitive serialization).
-    * All five Pareto ranks are now analyzed per activation, not just rank 1.
-    * Activation token extraction uses regex rather than positional split.
+Parser and analysis characteristics:
+    * The SymPy parser registers ``sin``/``cos`` keys directly, because
+      MOD6 rule files emit bare ``sin(...)`` / ``cos(...)`` tokens
+      (DEAP serializes primitives via ``func.__name__``), so a direct
+      symbol mapping is required.
+    * All five Pareto ranks are analyzed per activation.
+    * Activation token extraction uses a regex match on the filename.
 
 Mathematical Notes:
     * Empirical means: ``mu_j = (1/D) * sum_d m_j(d)`` over the D Phase A
@@ -55,12 +55,22 @@ _ACTIVATION_TOPOLOGY_FROM_FILENAME = re.compile(
     r"^Final_Discovered_Rules_([a-zA-Z]+)_(shallow|deep_narrow|funnel)_\d+(?:_\d+)?\.txt$"
 )
 
-# Retain the old single-capture regex for backward compatibility with legacy
-# rule files that lack a topology token (pre Q-G era artifacts).
+# A single-capture regex matches consensus rule files that carry only an
+# activation token (no topology segment).
 _ACTIVATION_FROM_FILENAME = re.compile(
     r"^Final_Discovered_Rules_([a-zA-Z]+)_\d+(?:_\d+)?\.txt$"
 )
 
+
+# =============================================================================
+# FUNCTIONAL BLOCK: Qualitative-Analyzer Configuration
+# WHAT IT IS: The Pydantic configuration model for the qualitative analyzer.
+# WHAT IT DOES: Declares the rank count, surface resolution, and the resolved
+#     input/output directories.
+# HOW IT DOES IT: QualitativeConfig validates the scalar bounds and derives the
+#     EARV report/visualisation paths and the rule-artifact directory from the
+#     module location.
+# =============================================================================
 
 class QualitativeConfig(BaseModel):
     """Configuration for the qualitative analyzer.
@@ -85,11 +95,10 @@ class QualitativeConfig(BaseModel):
     def rule_dir(self) -> Path:
         """Directory where MOD6 rule artifacts live.
 
-        Defaults to ``generated_files/GA_rule_files_testing/`` to stay
-        consistent with ``MOD7_pipeline_driver.DriverMatrixConfig``. When
-        promoting real production rules, update both default factories
-        in lock-step (here and in MOD7_pipeline_driver) to point at
-        ``generated_files/GA_rule_files/``.
+        Defaults to ``generated_files/GA_rule_files/`` (production consensus),
+        matching ``MOD7_pipeline_driver.DriverMatrixConfig``. Point it at
+        ``generated_files/GA_rule_files_testing/`` during development to mirror
+        the prototype engine (MOD5) output location.
         """
         d = (
             Path(__file__).resolve().parent
@@ -288,7 +297,7 @@ class QualitativeAnalyzer:
             expr: SymPy expression of the rule.
             activation: Activation token.
             topology: Topology token ('shallow', 'deep_narrow', 'funnel', or
-                'legacy' for pre-Q-G rule files).
+                'legacy' for files without a topology token).
             rank: 1-based Pareto rank.
         """
         lines: List[str] = [
@@ -423,8 +432,8 @@ class QualitativeAnalyzer:
         Args:
             filepath: Path to a ``Final_Discovered_Rules_*.txt`` artifact.
                 Filename is expected to encode both the activation and the
-                topology; the legacy single-token form is supported with a
-                topology fallback for backward compatibility.
+                topology; the single-token filename form is also supported with a
+                topology fallback.
 
         Returns:
             None. Writes one TXT + one PNG per (activation, topology, rank).
@@ -435,7 +444,7 @@ class QualitativeAnalyzer:
             activation = match.group(1)
             topology = match.group(2)
         else:
-            # Legacy fallback: pre-Q-G files with only an activation token.
+            # Fallback: files that carry only an activation token (no topology segment).
             legacy = _ACTIVATION_FROM_FILENAME.match(filepath.name)
             if not legacy:
                 print(f"Could not extract activation/topology from filename: {filepath.name}")

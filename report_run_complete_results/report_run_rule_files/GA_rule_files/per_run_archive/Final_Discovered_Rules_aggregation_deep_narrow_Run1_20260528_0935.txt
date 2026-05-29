@@ -1,0 +1,45 @@
+APPLIED COMPUTATIONAL INTELLIGENCE: MODULE 6 RESULTS
+Activation Function: AGGREGATION
+Topology: deep_narrow
+Status: PER-RUN PARETO FRONT (Run 1)
+Mode: Plan A Pareto (NSGA-II)
+========================================================================
+--- SYSTEM & ENVIRONMENT LOG ---
+Python Version: 3.12.13
+PyTorch Version: 2.5.0+cu124
+DEAP Version: 1.4
+Scikit-Learn Version: 1.8.0
+OS Platform: Linux-6.8.0-117-generic-x86_64-with-glibc2.39
+Hardware: x86_64 / x86_64
+Execution Target: CPU-ONLY (Phase A shallow FNN)
+PyTorch Threads -> intra_op: 4 | inter_op: 1
+Random Seed: 42
+Git Commit: 6510ae6ce7d4d6e474eeffd97c861b5e7f5de6cc
+--------------------------------
+========================================================================
+Population: 100 | Generations: 20
+Datasets/Rule: 20 | Batch: 64 | Topology: deep_narrow
+========================================================================
+
+Top Discovered Rules-of-Thumb:
+
+Rank 1:
+Equation: neg(-0.02455386410638516)
+Fitness: [Acc: 0.7892, Epochs: 16.90, Bloat: 2.0]
+
+Rank 2:
+Equation: neg(0.029732636384331323)
+Fitness: [Acc: 0.7864, Epochs: 15.95, Bloat: 2.0]
+
+Rank 3:
+Equation: 0.0038895583259273003
+Fitness: [Acc: 0.7818, Epochs: 18.40, Bloat: 1.0]
+
+Rank 4:
+Equation: -0.11072938151502631
+Fitness: [Acc: 0.7658, Epochs: 18.00, Bloat: 1.0]
+
+Rank 5:
+Equation: 0.07941928431102552
+Fitness: [Acc: 0.7655, Epochs: 17.75, Bloat: 1.0]
+

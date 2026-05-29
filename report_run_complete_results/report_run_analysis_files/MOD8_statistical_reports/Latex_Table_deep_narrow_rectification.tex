@@ -1,0 +1,25 @@
+\begin{table}[htpb]
+\centering
+\caption{Multiobjective Wilcoxon Signed-Rank Test Results: Deep_narrow / Rectification (GP Rank-1 as paired comparator; $\alpha = 0.05$)}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{l | c c c | c c c}
+\hline
+\textbf{Method} & \textbf{Mean Acc (\%)} & \textbf{W-Stat} & \textbf{$p$-value} & \textbf{Mean Loss} & \textbf{W-Stat} & \textbf{$p$-value} \\
+\hline
+\textbf{GP Rule (Rank 1)} & \textbf{78.07} & - & - & \textbf{0.6870} & - & - \\
+GP Rule (Rank 2) & 77.31 & - & - & 0.6654 & - & - \\
+GP Rule (Rank 3) & 76.34 & - & - & 0.6507 & - & - \\
+GP Rule (Rank 4) & 76.95 & - & - & 0.6815 & - & - \\
+GP Rule (Rank 5) & 77.59 & - & - & 0.7237 & - & - \\
+\hline
+Xavier\_Glorot & 77.68 & 4118.0 & 0.1745 (No) & 0.7341 & 3516.0 & 0.1495 (No) \\
+He\_Kaiming & 77.27 & 4139.0 & 0.0657 (No) & 0.7673 & 3196.0 & 0.0338 (\textbf{Yes}) \\
+LeCun & 77.45 & 3939.5 & 0.2088 (No) & 0.7164 & 3746.0 & 0.3185 (No) \\
+Orthogonal & 77.97 & 3609.5 & 0.4583 (No) & 0.7144 & 3716.0 & 0.2926 (No) \\
+FAVI & 77.73 & 3498.5 & 0.2660 (No) & 0.6939 & 3816.0 & 0.3823 (No) \\
+Laor & 75.39 & 5719.0 & 0.0000 (\textbf{Yes}) & 0.6779 & 3759.0 & 0.3300 (No) \\
+\hline
+\end{tabular}
+}
+\label{tab:multiobjective_results_deep_narrow_rectification}
+\end{table}

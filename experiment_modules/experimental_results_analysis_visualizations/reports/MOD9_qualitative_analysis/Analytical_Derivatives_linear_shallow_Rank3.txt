@@ -1,7 +1,0 @@
-QUALITATIVE ANALYSIS: LINEAR / shallow — Rank 3
-Equation: -silhouette - sqrt(Abs(pc_eigen + sqrt(Abs(feat_kurtosis + pc_eigen))))
-
-Empirical Partial Derivatives:
-  d(Variance) / d(pc_eigen) = -(1 + sign(feat_kurtosis + pc_eigen)/(2*sqrt(Abs(feat_kurtosis + pc_eigen))))*sign(pc_eigen + sqrt(Abs(feat_kurtosis + pc_eigen)))/(2*sqrt(Abs(pc_eigen + sqrt(Abs(feat_kurtosis + pc_eigen)))))
-  d(Variance) / d(silhouette) = -1
-  d(Variance) / d(feat_kurtosis) = -sign(feat_kurtosis + pc_eigen)*sign(pc_eigen + sqrt(Abs(feat_kurtosis + pc_eigen)))/(4*sqrt(Abs(feat_kurtosis + pc_eigen))*sqrt(Abs(pc_eigen + sqrt(Abs(feat_kurtosis + pc_eigen)))))

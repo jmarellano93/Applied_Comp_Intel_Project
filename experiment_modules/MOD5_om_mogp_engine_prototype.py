@@ -8,7 +8,7 @@ consensus aggregation, Plan A/B toggle, resume safety, normalization
 pre-flight assertion) is byte-identical to MOD6. Only three things differ:
 
     1. Scaled hyperparameters
-        population_size   :  20  (vs MOD6's 150)
+        population_size   :  20  (vs MOD6's 100)
         generations       :   3  (vs MOD6's  20)
         datasets_per_rule :   3  (vs MOD6's  20)
        => ~9,720 PyTorch CPU evaluations for the full 18-pair x 3-seed sweep,
@@ -60,10 +60,10 @@ warnings.filterwarnings("ignore")
 
 # =============================================================================
 # FUNCTIONAL BLOCK: Production Configuration Bounds
-# 4A) WHAT IT DOES: Establishes the massive computational dimensions required to
+# A) WHAT IT DOES: Establishes the massive computational dimensions required to
 #     explore the symbolic meta-feature space deeply enough to guarantee global optima.
-# 4B) PARAMETERS: population_size (150), generations (20), datasets_per_rule (20).
-# 4C) METHODOLOGICAL JUSTIFICATION: 150 individuals across 20 generations is the
+# B) PARAMETERS: population_size (20), generations (3), datasets_per_rule (3).
+# C) METHODOLOGICAL JUSTIFICATION: 100 individuals across 20 generations is the
 #     standard boundary constraint for Symbolic Regression (Koza, 1992) to avoid
 #     premature convergence. Training each across 20 distinct dataset topologies
 #     mathematically guarantees that discovered initialization heuristics are globally
@@ -71,7 +71,7 @@ warnings.filterwarnings("ignore")
 # =============================================================================
 class MOGPConfig(BaseModel):
     # ---- PROTOTYPE-SCALED hyperparameters (vs MOD6 defaults in parentheses) ----
-    population_size: int = Field(default=20, gt=0)       # MOD6: 150
+    population_size: int = Field(default=20, gt=0)       # MOD6: 100
     generations: int = Field(default=3, gt=0)            # MOD6:  20
     datasets_per_rule: int = Field(default=3, gt=0)      # MOD6:  20
     # ----------------------------------------------------------------------------
@@ -90,7 +90,7 @@ class MOGPConfig(BaseModel):
     )
 
     # -------------------------------------------------------------------------
-    # Q-G: Topology coverage. Each (topology, activation) pair drives an
+    # Topology coverage. Each (topology, activation) pair drives an
     # independent set of GP runs.
     # -------------------------------------------------------------------------
     topology_targets: List[str] = Field(
@@ -98,7 +98,7 @@ class MOGPConfig(BaseModel):
     )
 
     # -------------------------------------------------------------------------
-    # Q-E: Statistical replication. N independent GP runs per (topology,
+    # Statistical replication. N independent GP runs per (topology,
     # activation) pair with distinct seeds; their Pareto fronts are aggregated
     # into a consensus front by union-with-deduplication + NSGA-II re-sort.
     # -------------------------------------------------------------------------
@@ -106,7 +106,7 @@ class MOGPConfig(BaseModel):
     gp_run_seeds: List[int] = Field(default=[42, 43, 44])
 
     # -------------------------------------------------------------------------
-    # Q-F: Plan B contingency. When enabled, the GP switches from NSGA-II
+    # Plan B contingency. When enabled, the GP switches from NSGA-II
     # multi-objective Pareto to tournament-selected SOO over a scalar
     # weighted fitness f = w_acc * acc - w_eps * (epochs / max_epochs).
     # Bloat is excluded from the scalar fitness; the height cap remains.
@@ -168,13 +168,13 @@ def get_system_environment(config: MOGPConfig) -> str:
 
 # =============================================================================
 # FUNCTIONAL BLOCK: Architectural Output Routing (PROTOTYPE)
-# 4A) WHAT IT DOES: Routes prototype rule artifacts to the *_testing*
+# WHAT IT DOES: Routes prototype rule artifacts to the *_testing*
 #     subdirectory of generated_files, which is exactly where MOD7's
-#     ``_default_rule_directory()`` looks. This lets MSTR3 drive the full
+#     ``_default_rule_directory()`` looks. This lets an external orchestrator drive the full
 #     MOD7 -> MOD8 -> MOD9 validation pipeline against this prototype's
 #     output with no CLI overrides.
-# 4B) PARAMETERS: N/A (Implicit OS lookup).
-# 4C) METHODOLOGICAL JUSTIFICATION: Strict separation from the production
+# PARAMETERS: N/A (Implicit OS lookup).
+# METHODOLOGICAL JUSTIFICATION: Strict separation from the production
 #     output directory (``GA_rule_files/``, used by MOD6) eliminates any
 #     possibility of prototype-scale artifacts contaminating the production
 #     consensus front used in the paper's results section.
@@ -185,6 +185,20 @@ def get_generated_directory() -> Path:
     generated_dir.mkdir(parents=True, exist_ok=True)
     return generated_dir
 
+
+# =============================================================================
+# FUNCTIONAL BLOCK: Protected Primitive Operators & Sigma Sanitisation
+# WHAT IT IS: The numerically guarded arithmetic primitives that populate the
+#     GP function set, plus the variance post-processor.
+# WHAT IT DOES: Supplies division, square-root, logarithm, and exponential
+#     operators that never raise on degenerate input, and converts a raw rule
+#     output into a usable initialisation variance.
+# HOW IT DOES IT: protected_div floors the denominator magnitude at 1e-5;
+#     protected_sqrt/protected_log take the absolute value first; protected_exp
+#     clips the exponent to [-10, 10] to bound overflow; sanitize_sigma_squared
+#     rejects non-finite values and returns the absolute value so the variance
+#     consumed downstream is always finite and non-negative.
+# =============================================================================
 
 def protected_div(left: float, right: float) -> float:
     return left / right if abs(right) > 1e-5 else 1.0
@@ -204,6 +218,20 @@ def sanitize_sigma_squared(value: float) -> float:
         raise ValueError("sigma_squared must be finite.")
     return abs(sigma_squared)
 
+
+# =============================================================================
+# FUNCTIONAL BLOCK: GP Search-Space & Toolbox Construction
+# WHAT IT IS: The DEAP primitive set, fitness/creator registration, and the
+#     operator toolbox that together define the genetic-programming search.
+# WHAT IT DOES: Builds the typed expression grammar over the eight meta-feature
+#     terminals, registers the fitness objects, and wires selection, crossover,
+#     mutation, and the tree-height limit.
+# HOW IT DOES IT: build_primitive_set names the eight ARG terminals and adds the
+#     protected operators plus an ephemeral constant; ensure_deap_creators
+#     symmetrically clears and rebinds creators for Plan A (three-objective
+#     NSGA-II) or Plan B (single-objective scalar); build_toolbox branches the
+#     selection operator on that mode and applies a static height limit.
+# =============================================================================
 
 def build_primitive_set() -> gp.PrimitiveSet:
     primitive_set = gp.PrimitiveSet("MAIN", 8)
@@ -282,6 +310,18 @@ def build_toolbox(primitive_set: gp.PrimitiveSet, config: MOGPConfig) -> base.To
     return toolbox
 
 
+# =============================================================================
+# FUNCTIONAL BLOCK: Phase A Dataset Access & Trainer Pooling
+# WHAT IT IS: The accessors that expose the cached Phase A datasets and the
+#     amortised per-dataset FNN trainer pool.
+# WHAT IT DOES: Selects the configured number of discovery datasets and returns
+#     (creating on first use) a reusable trainer keyed by dataset id.
+# HOW IT DOES IT: get_phase_a_dataset_ids slices the manager cache and validates
+#     sufficiency; _get_or_build_trainer caches one FNNTrainer per dataset id so
+#     the network is constructed once and reused across all rules, baselines,
+#     and seeds evaluated on that dataset.
+# =============================================================================
+
 def get_phase_a_dataset_ids(manager: DatasetManager, datasets_per_rule: int) -> List[int]:
     dataset_ids = list(manager.dataset_cache.keys())
     if len(dataset_ids) < datasets_per_rule:
@@ -309,6 +349,19 @@ def _get_or_build_trainer(
         pool[did] = trainer
     return trainer, meta_features
 
+
+# =============================================================================
+# FUNCTIONAL BLOCK: Fitness Evaluation
+# WHAT IT IS: The objective function mapping a candidate symbolic rule to its
+#     multi-objective fitness on the Phase A bench.
+# WHAT IT DOES: Compiles the rule, evaluates the initialisation variance it
+#     produces on each discovery dataset, and returns the (accuracy, epochs,
+#     tree-size) objective tuple.
+# HOW IT DOES IT: evaluate_rule compiles the tree, computes sigma-squared per
+#     dataset from that dataset's meta-features, applies it to the pooled
+#     trainer, and averages the resulting balanced accuracy and epochs-to-target
+#     across datasets; tree length supplies the parsimony objective.
+# =============================================================================
 
 def evaluate_rule(
     individual: gp.PrimitiveTree, manager: DatasetManager, activation: str,
@@ -376,6 +429,17 @@ def evaluate_rule(
     return mean_acc, mean_epochs, tree_size
 
 
+# =============================================================================
+# FUNCTIONAL BLOCK: Pareto-Front Export
+# WHAT IT IS: The artifact writer that serialises a discovered front to disk.
+# WHAT IT DOES: Writes the ranked rule set for one (topology, activation) cell
+#     to a text artifact consumed by MOD7 and MOD9.
+# HOW IT DOES IT: export_pareto_rules emits an environment/header block, then
+#     each rank's simplified equation and fitness, choosing the consensus path
+#     or the per-run archive path from the run_index argument and encoding the
+#     activation and topology in the filename for downstream regex matching.
+# =============================================================================
+
 def export_pareto_rules(
     hall_of_fame: tools.ParetoFront, activation: str, config: MOGPConfig,
     output_dir: Path, env_details: str, top_k: int = 10,
@@ -394,7 +458,7 @@ def export_pareto_rules(
         is_checkpoint: If True, writes to a Checkpoint_*.txt filename.
         gen: Generation index for checkpoint files.
         topology: Topology token. Embedded in filename if provided
-            (None falls back to ``config.topology`` for backward compat).
+            (None falls back to ``config.topology`` for backward compatibility).
         run_index: 1-based per-seed run index. If provided, the filename
             uses the ``_Run<i>`` suffix and the archive subdirectory; if
             None, the filename is the consensus form (placed in the main
@@ -472,6 +536,18 @@ def export_pareto_rules(
 
     return output_path
 
+
+# =============================================================================
+# FUNCTIONAL BLOCK: Evolutionary Loop & Per-Activation Driver
+# WHAT IT IS: The generational (mu + lambda) loop and the per-activation entry
+#     point that runs it.
+# WHAT IT DOES: Evolves the population across generations with checkpointing and
+#     drives one full GP run for a given activation/topology.
+# HOW IT DOES IT: _evaluate_invalid scores only individuals whose fitness is
+#     stale; custom_eaMuPlusLambda applies variation, re-evaluates, and selects
+#     the next generation, periodically writing checkpoints; run_gp_for_activation
+#     assembles the toolbox, seeds the run, and returns the final front.
+# =============================================================================
 
 def _evaluate_invalid(
     invalid_ind: List[gp.PrimitiveTree], toolbox: base.Toolbox, desc: str,
@@ -603,6 +679,17 @@ def run_gp_for_activation(
         config.topology = saved_topology
 
 
+# =============================================================================
+# FUNCTIONAL BLOCK: Multi-Seed Consensus Aggregation
+# WHAT IT IS: The reducer that merges per-seed Pareto fronts into one consensus
+#     front.
+# WHAT IT DOES: Collapses rules discovered across the independent seeds into a
+#     single deduplicated front carrying mean-across-seed fitness.
+# HOW IT DOES IT: aggregate_consensus_front groups individuals by their exact
+#     string form, averages the objective values of duplicates, and returns one
+#     representative per unique rule string.
+# =============================================================================
+
 def aggregate_consensus_front(
     per_run_fronts: List["tools.ParetoFront"], config: MOGPConfig,
 ) -> List:
@@ -654,6 +741,15 @@ def aggregate_consensus_front(
     first_front.sort(key=lambda c: c.fitness.values[0], reverse=True)
     return first_front
 
+
+# =============================================================================
+# FUNCTIONAL BLOCK: Runtime Determinism & Thread Configuration
+# WHAT IT IS: The seeding and CPU-threading setup applied before evolution.
+# WHAT IT DOES: Fixes all random number sources and configures intra-op CPU
+#     parallelism for reproducible, efficient execution.
+# HOW IT DOES IT: seed_runtime seeds random, NumPy, and PyTorch from one value;
+#     configure_torch_threads sets the Torch thread count from the config.
+# =============================================================================
 
 def seed_runtime(seed: int) -> None:
     """Resets Python's RNG and NumPy's RNG. PyTorch seeded separately per eval."""

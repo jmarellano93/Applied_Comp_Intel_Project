@@ -1,0 +1,73 @@
+activation,topology,rank,equation_str,category
+aggregation,deep_narrow,1,-0.0383016545544630,pure_constant
+aggregation,deep_narrow,2,-0.0510272806050976,pure_constant
+aggregation,funnel,1,0.00111964582576813,pure_constant
+aggregation,funnel,2,0.0297326363843313*sin(feat_kurtosis) + 0.0151192344354004,other_feature_dep
+aggregation,funnel,3,-0.000973762128391928,pure_constant
+aggregation,funnel,4,0.000949007532534608,pure_constant
+aggregation,funnel,5,0.00631934144237656*cos(feat_kurtosis*iqr_dev*n_d_ratio + 0.303047381024217),unbounded
+aggregation,shallow,1,0.0297326363843313*sin(0.398492264818324/davies_bouldin),protected_artifact
+aggregation,shallow,2,0.0222699067809933,pure_constant
+aggregation,shallow,3,0.0297326363843313*log(Abs(hopkins) + 1/100000),protected_artifact
+aggregation,shallow,4,0.0297326363843313*cos(hopkins),bounded_trig
+aggregation,shallow,5,0.0297326363843313*silhouette,origin_collapsing
+linear,deep_narrow,1,n_d_ratio**2,unbounded
+linear,deep_narrow,2,0.149943969093358*sqrt(Abs(n_d_ratio)),protected_artifact
+linear,deep_narrow,3,feat_kurtosis*n_d_ratio*target_entropy,unbounded
+linear,deep_narrow,4,0.172431541152805,pure_constant
+linear,deep_narrow,5,0.0970277172177405*target_entropy,origin_collapsing
+linear,funnel,1,0.785572724006331,pure_constant
+linear,funnel,2,0.999736974700946,pure_constant
+linear,funnel,3,exp(target_entropy/feat_kurtosis),unbounded
+linear,funnel,4,hopkins/iqr_dev,unbounded
+linear,funnel,5,silhouette,origin_collapsing
+linear,shallow,1,n_d_ratio - exp(pc_eigen),unbounded
+linear,shallow,2,-silhouette - sqrt(Abs(feat_kurtosis + pc_eigen)),protected_artifact
+linear,shallow,3,-silhouette - sqrt(Abs(pc_eigen + sqrt(Abs(feat_kurtosis + pc_eigen)))),protected_artifact
+linear,shallow,4,sqrt(Abs(davies_bouldin - target_entropy**2*sqrt(Abs(davies_bouldin)))),protected_artifact
+linear,shallow,5,-silhouette - 0.826122334741168,origin_collapsing
+rectification,deep_narrow,1,0.0195246700939174,pure_constant
+rectification,deep_narrow,2,0.0129683302207380,pure_constant
+rectification,deep_narrow,3,0.091837715145637*feat_kurtosis*sin(iqr_dev),unbounded
+rectification,deep_narrow,4,0.0297326363843313*pc_eigen - 0.00557273290319536,origin_collapsing
+rectification,deep_narrow,5,-0.0297326363843313,pure_constant
+rectification,funnel,1,-0.0633807484236808*pc_eigen*sqrt(Abs(n_d_ratio)),protected_artifact
+rectification,funnel,2,iqr_dev*cos(log(Abs(silhouette) + 1/100000)),protected_artifact
+rectification,funnel,3,0.0294219026838247,pure_constant
+rectification,funnel,4,sin(0.0679651755178023*hopkins),bounded_trig
+rectification,funnel,5,-0.0297326363843313,pure_constant
+rectification,shallow,1,-sin(0.0243970223673645*iqr_dev*n_d_ratio),unbounded
+rectification,shallow,2,-0.0229362957012469*n_d_ratio,origin_collapsing
+rectification,shallow,3,-sin(0.0183273290034117*n_d_ratio),bounded_trig
+rectification,shallow,4,0.0229362957012469,pure_constant
+rectification,shallow,5,0.0297326363843313*feat_kurtosis,origin_collapsing
+smooth,deep_narrow,1,-0.119742648004175*sin(sin(iqr_dev)),bounded_trig
+smooth,deep_narrow,2,-0.0308059658594664*silhouette,origin_collapsing
+smooth,deep_narrow,3,0.0308059658594664,pure_constant
+smooth,deep_narrow,4,-0.0367699337044863,pure_constant
+smooth,deep_narrow,5,log(Abs(cos(iqr_dev)) + 1/100000),protected_artifact
+smooth,funnel,1,0.0297326363843313*davies_bouldin - 0.0297326363843313*target_entropy,other_feature_dep
+smooth,funnel,2,-0.0587513001999703,pure_constant
+smooth,funnel,3,0.0619261093149091,pure_constant
+smooth,funnel,4,hopkins*iqr_dev*n_d_ratio*pc_eigen,unbounded
+smooth,funnel,5,-0.105534243576035,pure_constant
+smooth,shallow,1,log((Abs(n_d_ratio) + 1/100000)**(-0.0308059658594664)),protected_artifact
+smooth,shallow,2,-0.012968330220738*sqrt(Abs(target_entropy)),protected_artifact
+smooth,shallow,3,-0.012968330220738*pc_eigen,origin_collapsing
+smooth,shallow,4,-0.012968330220738*feat_kurtosis,origin_collapsing
+smooth,shallow,5,0.0187796920530200,pure_constant
+squashing,deep_narrow,1,0.0297326363843313*sqrt(Abs(feat_kurtosis)) + 0.00465900679264226,protected_artifact
+squashing,deep_narrow,2,0.0594652727686626*sqrt(Abs(feat_kurtosis)),protected_artifact
+squashing,deep_narrow,3,0.0236475935460351,pure_constant
+squashing,deep_narrow,4,0.0297326363843313*cos(sin(davies_bouldin + silhouette + exp(pc_eigen))),unbounded
+squashing,deep_narrow,5,0.0245538641063852,pure_constant
+squashing,funnel,1,-0.0229362957012469*silhouette,origin_collapsing
+squashing,funnel,2,-0.00476004227707586*feat_kurtosis - 0.0113355926872378,origin_collapsing
+squashing,funnel,3,-0.0125921576985643,pure_constant
+squashing,funnel,4,-0.00697079950872524,pure_constant
+squashing,funnel,5,0.0129683302207380,pure_constant
+squashing,shallow,1,0.0432484823334625*n_d_ratio,origin_collapsing
+squashing,shallow,2,-0.0308059658594664*sqrt(Abs(target_entropy)),protected_artifact
+squashing,shallow,3,-0.00729057326381466,pure_constant
+squashing,shallow,4,0.0308059658594664,pure_constant
+squashing,shallow,5,-0.0229362957012469*target_entropy,origin_collapsing

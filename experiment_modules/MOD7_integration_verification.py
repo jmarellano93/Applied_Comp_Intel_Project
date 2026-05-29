@@ -31,16 +31,16 @@ def test_driver_to_mod7_interface_alignment() -> None:
     assert "--rule_strs" in result.stdout
     assert "--rule_str " not in result.stdout
 
-    # The quick-test flag must be surfaced for MSTR3 → driver → MOD7 propagation.
+    # The quick-test flag must be surfaced for driver -> MOD7 propagation.
     assert "--quick_test" in result.stdout
 
 
 def test_partitioned_namespace_generation() -> None:
-    """Validates that the Driver's default rule_directory points at GA_rule_files_testing.
+    """Validates that the Driver's default rule_directory points at GA_rule_files (production).
 
-    The driver's default reflects the *current* testing phase. When you
-    promote real production rules, change DriverMatrixConfig.rule_directory's
-    default factory to point at GA_rule_files/ and update this assertion.
+    The driver's default is the production consensus directory. Point it at
+    GA_rule_files_testing/ during development via the --rule_directory override.
+
     """
     import MOD7_pipeline_driver as drv
 
@@ -48,12 +48,12 @@ def test_partitioned_namespace_generation() -> None:
 
     # The rule directory's parent must be generated_files/ (rules are data, not analysis artifacts).
     assert config.rule_directory.parent.name == "generated_files"
-    # The default is the testing-mode directory.
-    assert config.rule_directory.name == "GA_rule_files_testing"
+    # The default is the production consensus directory.
+    assert config.rule_directory.name == "GA_rule_files"
 
 
 def test_driver_quick_test_flag_surface() -> None:
-    """Asserts the driver itself accepts --quick_test for MSTR3 forwarding."""
+    """Asserts the driver itself accepts --quick_test for forwarding to MOD7."""
     current_dir = os.path.dirname(os.path.abspath(__file__))
     drv_path = os.path.join(current_dir, "MOD7_pipeline_driver.py")
 

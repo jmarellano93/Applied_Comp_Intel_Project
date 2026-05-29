@@ -143,6 +143,19 @@ _META_FEATURE_COLS: Tuple[str, ...] = (
 )
 
 
+# =============================================================================
+# FUNCTIONAL BLOCK: Statistical Artifact Generator
+# WHAT IT IS: The class that turns MOD7 result JSONs into the statistical report
+#     and figure set.
+# WHAT IT DOES: Produces pooled Wilcoxon LaTeX tables, distribution figures, and
+#     the cluster-stratified Holm-corrected report for every (topology,
+#     activation) cell.
+# HOW IT DOES IT: ArtifactGenerator loads each cell's distributions, runs the
+#     zero-variance-safe Wilcoxon test across the five GP ranks and six baselines,
+#     fits the global K-means clusters on normalised Phase B meta-features, and
+#     writes the per-cell and per-cluster artifacts.
+# =============================================================================
+
 class ArtifactGenerator:
     """Statistical reporter: emits LaTeX tables, distribution plots, and
     cluster-stratified analyses."""

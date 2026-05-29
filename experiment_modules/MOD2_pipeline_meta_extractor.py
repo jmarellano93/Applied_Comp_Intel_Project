@@ -28,17 +28,17 @@ logger = logging.getLogger(__name__)
 
 # =============================================================================
 # FUNCTIONAL BLOCK: Extraction Configuration
-# 4A) WHAT IT DOES: Secures the input/output paths and enforces the exact volume
-#     of datasets relegated to the Phase A mathematical discovery phase.
-# 4B) PARAMETERS:
-#     - n_discovery_datasets (20)
-#     - random_seed (42)
-#     - epsilon (1e-10)
-# 4C) METHODOLOGICAL JUSTIFICATION:
-#     - 20 Datasets guarantees sufficient topological diversity during GP crossover
-#       while preventing out-of-memory constraints during the 80,000 FNN evaluations.
-#     - epsilon is a strict mathematical guard against Floating Point exceptions
-#       (division by zero) during ratio configurations.
+# WHAT IT DOES: Secures the input/output paths and enforces the exact volume
+#  of datasets relegated to the Phase A mathematical discovery phase.
+# PARAMETERS:
+#  - n_discovery_datasets (20)
+#  - random_seed (42)
+#  - epsilon (1e-10)
+# METHODOLOGICAL JUSTIFICATION:
+#  - 20 Datasets guarantees sufficient topological diversity during GP crossover
+#    while preventing out-of-memory constraints during the 80,000 FNN evaluations.
+#  - epsilon is a strict mathematical guard against Floating Point exceptions
+#    (division by zero) during ratio configurations.
 # =============================================================================
 class ExtractionConfig(BaseModel):
     project_root: str = Field(
@@ -71,12 +71,12 @@ class ExtractionConfig(BaseModel):
 
 # =============================================================================
 # FUNCTIONAL BLOCK: Hopkins Statistic Calculation
-# 4A) WHAT IT DOES: Calculates the dataset's clustering tendency by measuring spatial
-#     randomness against a uniformly generated synthetic distribution using KD-Trees.
-# 4B) PARAMETERS: sample_ratio (0.1), eps (1e-10)
-# 4C) METHODOLOGICAL JUSTIFICATION: Setting sample_ratio to 10% ensures accurate
-#     spatial representation of the feature topography without forcing a catastrophic
-#     $O(N^2)$ pairwise distance calculation across the entire matrix.
+# WHAT IT DOES: Calculates the dataset's clustering tendency by measuring spatial
+#  randomness against a uniformly generated synthetic distribution using KD-Trees.
+# PARAMETERS: sample_ratio (0.1), eps (1e-10)
+# METHODOLOGICAL JUSTIFICATION: Setting sample_ratio to 10% ensures accurate
+#  spatial representation of the feature topography without forcing a severe
+#  $O(N^2)$ pairwise distance calculation across the entire matrix.
 # =============================================================================
 def calculate_hopkins_vectorized(X: np.ndarray, seed: int, sample_ratio: float = 0.1, eps: float = 1e-10) -> float:
     n, d = X.shape
@@ -111,12 +111,12 @@ def calculate_hopkins_vectorized(X: np.ndarray, seed: int, sample_ratio: float =
 
 # =============================================================================
 # FUNCTIONAL BLOCK: Meta-Feature Extraction Matrix
-# 4A) WHAT IT DOES: Extracts the 'Elite 8' meta-features representing dimensionality,
-#     distribution shape, variance, and clustering tendencies.
-# 4B) PARAMETERS: k_proxy = max(2, min(5, n // 10))
-# 4C) METHODOLOGICAL JUSTIFICATION: The k_proxy parameter bounds the KMeans clustering
-#     evaluation between 2 and 5 clusters to prevent micro-clustering noise on small
-#     datasets, providing a stable baseline for the Silhouette and Davies-Bouldin scores.
+# WHAT IT DOES: Extracts the 'Elite 8' meta-features representing dimensionality,
+#  distribution shape, variance, and clustering tendencies.
+# PARAMETERS: k_proxy = max(2, min(5, n // 10))
+# METHODOLOGICAL JUSTIFICATION: The k_proxy parameter bounds the KMeans clustering
+#  evaluation between 2 and 5 clusters to prevent micro-clustering noise on small
+#  datasets, providing a stable baseline for the Silhouette and Davies-Bouldin scores.
 # =============================================================================
 def extract_meta_features(X: pd.DataFrame, y: pd.Series, cfg: ExtractionConfig) -> Dict[str, float]:
     n, d = X.shape
@@ -164,13 +164,13 @@ def extract_meta_features(X: pd.DataFrame, y: pd.Series, cfg: ExtractionConfig) 
 
 # =============================================================================
 # FUNCTIONAL BLOCK: Dataset Centroid Partitioning
-# 4A) WHAT IT DOES: Groups the complete dataset matrix into 20 structural centroids,
-#     selecting the closest real dataset to each centroid to form Phase A.
-# 4B) PARAMETERS: strategy='median' (Imputer), metric='euclidean' (cdist).
-# 4C) METHODOLOGICAL JUSTIFICATION: Using KMeans centroids on scaled meta-features
-#     mathematically guarantees that the 20 discovery datasets in Phase A represent
-#     the widest possible variety of topological structures (fat, wide, sparse, dense),
-#     ensuring the GP rule learns generalized heuristics rather than overfitting to one data type.
+# WHAT IT DOES: Groups the complete dataset matrix into 20 structural centroids,
+#  selecting the closest real dataset to each centroid to form Phase A.
+# PARAMETERS: strategy='median' (Imputer), metric='euclidean' (cdist).
+# METHODOLOGICAL JUSTIFICATION: Using KMeans centroids on scaled meta-features
+#  mathematically guarantees that the 20 discovery datasets in Phase A represent
+#  the widest possible variety of topological structures (fat, wide, sparse, dense),
+#  ensuring the GP rule learns generalized heuristics rather than overfitting to one data type.
 # =============================================================================
 def partition_datasets(meta_df: pd.DataFrame, cfg: ExtractionConfig) -> Tuple[pd.DataFrame, pd.DataFrame]:
     logger.info(f"Clustering {len(meta_df)} datasets into {cfg.n_discovery_datasets} representational centroids.")
@@ -213,18 +213,18 @@ def partition_datasets(meta_df: pd.DataFrame, cfg: ExtractionConfig) -> Tuple[pd
 
 # =============================================================================
 # FUNCTIONAL BLOCK: Meta-Feature Normalization Persistence
-# 4A) WHAT IT DOES: Computes per-feature z-score normalization parameters
-#     (mean, std) using ONLY the Phase A discovery datasets, then persists them
-#     to disk so MOD3 can apply identical normalization to both phases at cache
-#     load time. Prevents distributional leakage from Phase B into the
-#     normalization parameters used during GP discovery.
-# 4B) PARAMETERS: phase_a_df (the Phase A subset only), cfg (for output path).
-# 4C) METHODOLOGICAL JUSTIFICATION: Fitting the normalizer on Phase A only
-#     guarantees that the GP terminal-set values during discovery and during
-#     Phase B validation share the SAME affine transform, with the transform's
-#     parameters derived solely from data the GP was permitted to observe.
-#     A small floor (1e-10) is added to each feature's std to prevent
-#     division-by-zero in the degenerate case of a constant Phase A column.
+# WHAT IT DOES: Computes per-feature z-score normalization parameters
+#  (mean, std) using ONLY the Phase A discovery datasets, then persists them
+#  to disk so MOD3 can apply identical normalization to both phases at cache
+#  load time. Prevents distributional leakage from Phase B into the
+#  normalization parameters used during GP discovery.
+# PARAMETERS: phase_a_df (the Phase A subset only), cfg (for output path).
+# METHODOLOGICAL JUSTIFICATION: Fitting the normalizer on Phase A only
+#  guarantees that the GP terminal-set values during discovery and during
+#  Phase B validation share the SAME affine transform, with the transform's
+#  parameters derived solely from data the GP was permitted to observe.
+#  A small floor (1e-10) is added to each feature's std to prevent
+#  division-by-zero in the degenerate case of a constant Phase A column.
 # =============================================================================
 def persist_normalization_params(phase_a_df: pd.DataFrame, cfg: ExtractionConfig) -> None:
     feature_cols = [

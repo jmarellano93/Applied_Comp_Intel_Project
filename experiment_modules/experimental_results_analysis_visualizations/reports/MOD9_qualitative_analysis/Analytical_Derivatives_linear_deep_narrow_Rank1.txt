@@ -1,5 +1,0 @@
-QUALITATIVE ANALYSIS: LINEAR / deep_narrow — Rank 1
-Equation: n_d_ratio**2
-
-Empirical Partial Derivatives:
-  d(Variance) / d(n_d_ratio) = 2*n_d_ratio

@@ -1,0 +1,5 @@
+QUALITATIVE ANALYSIS: SQUASHING / deep_narrow — Rank 1
+Equation: 0.0297326363843313*sqrt(Abs(feat_kurtosis)) + 0.00465900679264226
+
+Empirical Partial Derivatives:
+  d(Variance) / d(feat_kurtosis) = 0.0148663181921657*sign(feat_kurtosis)/sqrt(Abs(feat_kurtosis))

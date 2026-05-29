@@ -1,0 +1,65 @@
+APPLIED COMPUTATIONAL INTELLIGENCE: MODULE 6 RESULTS
+Activation Function: RECTIFICATION
+Topology: deep_narrow
+Status: PER-RUN PARETO FRONT (Run 1)
+Mode: Plan A Pareto (NSGA-II)
+========================================================================
+--- SYSTEM & ENVIRONMENT LOG ---
+Python Version: 3.12.13
+PyTorch Version: 2.5.0+cu124
+DEAP Version: 1.4
+Scikit-Learn Version: 1.8.0
+OS Platform: Linux-6.8.0-117-generic-x86_64-with-glibc2.39
+Hardware: x86_64 / x86_64
+Execution Target: CPU-ONLY (Phase A shallow FNN)
+PyTorch Threads -> intra_op: 4 | inter_op: 1
+Random Seed: 42
+Git Commit: 6510ae6ce7d4d6e474eeffd97c861b5e7f5de6cc
+--------------------------------
+========================================================================
+Population: 100 | Generations: 20
+Datasets/Rule: 20 | Batch: 64 | Topology: deep_narrow
+========================================================================
+
+Top Discovered Rules-of-Thumb:
+
+Rank 1:
+Equation: mul(sin(0.7164010556638205), 0.029732636384331323)
+Fitness: [Acc: 0.7912, Epochs: 16.95, Bloat: 4.0]
+
+Rank 2:
+Equation: mul(feat_kurtosis, mul(mul(sin(neg(iqr_dev)), -0.30304738102421713), neg(-0.30304738102421713)))
+Fitness: [Acc: 0.7900, Epochs: 16.90, Bloat: 10.0]
+
+Rank 3:
+Equation: mul(sub(pc_eigen, 0.18742814566326538), 0.029732636384331323)
+Fitness: [Acc: 0.7894, Epochs: 16.85, Bloat: 5.0]
+
+Rank 4:
+Equation: neg(0.029732636384331323)
+Fitness: [Acc: 0.7881, Epochs: 16.10, Bloat: 2.0]
+
+Rank 5:
+Equation: mul(mul(iqr_dev, mul(protected_log(n_d_ratio), sin(hopkins))), protected_sqrt(iqr_dev))
+Fitness: [Acc: 0.7715, Epochs: 15.95, Bloat: 10.0]
+
+Rank 6:
+Equation: mul(protected_sqrt(feat_kurtosis), mul(pc_eigen, -0.30304738102421713))
+Fitness: [Acc: 0.7707, Epochs: 15.70, Bloat: 6.0]
+
+Rank 7:
+Equation: mul(feat_kurtosis, mul(pc_eigen, neg(-0.30304738102421713)))
+Fitness: [Acc: 0.7706, Epochs: 15.65, Bloat: 6.0]
+
+Rank 8:
+Equation: mul(protected_sqrt(n_d_ratio), mul(pc_eigen, -0.30304738102421713))
+Fitness: [Acc: 0.7696, Epochs: 15.40, Bloat: 6.0]
+
+Rank 9:
+Equation: mul(protected_sqrt(n_d_ratio), mul(pc_eigen, iqr_dev))
+Fitness: [Acc: 0.7689, Epochs: 15.15, Bloat: 6.0]
+
+Rank 10:
+Equation: -0.09674951733957826
+Fitness: [Acc: 0.7671, Epochs: 17.20, Bloat: 1.0]
+

@@ -10,7 +10,7 @@ Default rule directory: ``generated_files/GA_rule_files/`` (production
 consensus artifacts). Override with ``--rule_directory PATH`` to point at
 ``GA_rule_files_testing/`` or any other location during development.
 
-Forwards ``--quick_test`` to MOD7 so MSTR3 can request a fast pipeline check.
+Forwards ``--quick_test`` to MOD7 to request a fast pipeline check.
 """
 
 from __future__ import annotations
@@ -48,6 +48,16 @@ def _default_rule_directory() -> Path:
     """
     return Path(__file__).resolve().parent / "generated_files" / "GA_rule_files"
 
+
+# =============================================================================
+# FUNCTIONAL BLOCK: Driver Configuration Model
+# WHAT IT IS: The Pydantic model holding the matrix-sweep parameters.
+# WHAT IT DOES: Declares the activation and topology targets, the rule-artifact
+#     directory, the target validation script, and the quick-test toggle.
+# HOW IT DOES IT: DriverMatrixConfig defaults the rule directory to the
+#     production consensus folder and exposes the scalar topology field for
+#     single-topology runs alongside the full topology_targets sweep.
+# =============================================================================
 
 class DriverMatrixConfig(BaseModel):
     """Runtime config for the MOD7 driver.
@@ -117,7 +127,7 @@ class PipelineDriver:
         Args:
             activation: One of the 6 canonical activation tokens.
             topology: One of 'shallow', 'deep_narrow', 'funnel'. If None, falls
-                back to ``self.cfg.topology`` (legacy single-topology behaviour).
+                back to ``self.cfg.topology`` (single-topology behaviour).
 
         Returns:
             List of DEAP-format equation strings (top 5 by rank order in the

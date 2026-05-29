@@ -2,7 +2,6 @@
 # ============================================================================
 # MOD6 consensus aggregation pass on FHNW Calculon
 # ----------------------------------------------------------------------------
-# Author : John M. Arellano
 # Purpose: After the per-seed job array (mod6_sweep.sbatch) writes 51 per-run
 #          files to generated_files/GA_rule_files/per_run_archive/, this job
 #          reads them, aggregates per-pair Pareto fronts into consensus fronts
@@ -27,7 +26,7 @@
 #SBATCH --output=logs/mod6_aggregate_%j.log
 #SBATCH --error=logs/mod6_aggregate_%j.err
 #SBATCH --mail-type=END,FAIL
-#SBATCH --mail-user=john.arellano@students.fhnw.ch
+#SBATCH --mail-user=FHNW_EMAIL_ADDRESS_HERE
 
 echo "============================================================"
 echo "MOD6 consensus aggregation pass"

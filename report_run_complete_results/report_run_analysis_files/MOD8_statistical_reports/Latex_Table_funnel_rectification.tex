@@ -1,0 +1,25 @@
+\begin{table}[htpb]
+\centering
+\caption{Multiobjective Wilcoxon Signed-Rank Test Results: Funnel / Rectification (GP Rank-1 as paired comparator; $\alpha = 0.05$)}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{l | c c c | c c c}
+\hline
+\textbf{Method} & \textbf{Mean Acc (\%)} & \textbf{W-Stat} & \textbf{$p$-value} & \textbf{Mean Loss} & \textbf{W-Stat} & \textbf{$p$-value} \\
+\hline
+\textbf{GP Rule (Rank 1)} & \textbf{79.13} & - & - & \textbf{0.6555} & - & - \\
+GP Rule (Rank 2) & 74.99 & - & - & 3.0930 & - & - \\
+GP Rule (Rank 3) & 79.64 & - & - & 0.6424 & - & - \\
+GP Rule (Rank 4) & 79.58 & - & - & 0.6315 & - & - \\
+GP Rule (Rank 5) & 79.69 & - & - & 0.6630 & - & - \\
+\hline
+Xavier\_Glorot & 79.40 & 3056.5 & 0.7815 (No) & 0.6340 & 4289.0 & 0.8068 (No) \\
+He\_Kaiming & 79.76 & 2914.0 & 0.9696 (No) & 0.6549 & 3750.0 & 0.3220 (No) \\
+LeCun & 79.54 & 3105.5 & 0.8267 (No) & 0.6654 & 3901.0 & 0.4642 (No) \\
+Orthogonal & 79.25 & 3029.0 & 0.5279 (No) & 0.6513 & 4785.0 & 0.9816 (No) \\
+FAVI & 79.01 & 3312.5 & 0.1287 (No) & 0.6329 & 4146.0 & 0.6963 (No) \\
+Laor & 76.21 & 5771.5 & 0.0000 (\textbf{Yes}) & 0.6597 & 3196.0 & 0.0338 (\textbf{Yes}) \\
+\hline
+\end{tabular}
+}
+\label{tab:multiobjective_results_funnel_rectification}
+\end{table}

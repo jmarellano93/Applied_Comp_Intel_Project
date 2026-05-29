@@ -1,0 +1,65 @@
+APPLIED COMPUTATIONAL INTELLIGENCE: MODULE 6 RESULTS
+Activation Function: SMOOTH
+Topology: shallow
+Status: PER-RUN PARETO FRONT (Run 1)
+Mode: Plan A Pareto (NSGA-II)
+========================================================================
+--- SYSTEM & ENVIRONMENT LOG ---
+Python Version: 3.12.13
+PyTorch Version: 2.5.0+cu124
+DEAP Version: 1.4
+Scikit-Learn Version: 1.8.0
+OS Platform: Linux-6.8.0-117-generic-x86_64-with-glibc2.39
+Hardware: x86_64 / x86_64
+Execution Target: CPU-ONLY (Phase A shallow FNN)
+PyTorch Threads -> intra_op: 4 | inter_op: 1
+Random Seed: 42
+Git Commit: 6510ae6ce7d4d6e474eeffd97c861b5e7f5de6cc
+--------------------------------
+========================================================================
+Population: 100 | Generations: 20
+Datasets/Rule: 20 | Batch: 64 | Topology: shallow
+========================================================================
+
+Top Discovered Rules-of-Thumb:
+
+Rank 1:
+Equation: mul(-0.030805965859466378, protected_log(n_d_ratio))
+Fitness: [Acc: 0.7898, Epochs: 16.40, Bloat: 4.0]
+
+Rank 2:
+Equation: mul(-0.012968330220737956, protected_sqrt(target_entropy))
+Fitness: [Acc: 0.7894, Epochs: 15.50, Bloat: 4.0]
+
+Rank 3:
+Equation: mul(-0.012968330220737956, pc_eigen)
+Fitness: [Acc: 0.7866, Epochs: 17.20, Bloat: 3.0]
+
+Rank 4:
+Equation: mul(-0.012968330220737956, feat_kurtosis)
+Fitness: [Acc: 0.7852, Epochs: 16.95, Bloat: 3.0]
+
+Rank 5:
+Equation: mul(n_d_ratio, -0.02293629570124689)
+Fitness: [Acc: 0.7848, Epochs: 15.75, Bloat: 3.0]
+
+Rank 6:
+Equation: mul(-0.012968330220737956, protected_log(iqr_dev))
+Fitness: [Acc: 0.7838, Epochs: 15.40, Bloat: 4.0]
+
+Rank 7:
+Equation: neg(-0.012968330220737956)
+Fitness: [Acc: 0.7837, Epochs: 15.50, Bloat: 2.0]
+
+Rank 8:
+Equation: mul(-0.012968330220737956, protected_log(pc_eigen))
+Fitness: [Acc: 0.7825, Epochs: 15.35, Bloat: 4.0]
+
+Rank 9:
+Equation: mul(-0.030805965859466378, feat_kurtosis)
+Fitness: [Acc: 0.7788, Epochs: 15.35, Bloat: 3.0]
+
+Rank 10:
+Equation: -0.1565555812833348
+Fitness: [Acc: 0.7593, Epochs: 17.85, Bloat: 1.0]
+

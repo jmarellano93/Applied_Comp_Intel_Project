@@ -57,7 +57,6 @@ If MOD7 per-trial JSONs are absent, the per-trial analyses (D, E partial, F)
 are skipped with a logged warning; the no-input analyses (A, B, C, loss-vs-
 accuracy means scatter) run regardless.
 
-Author: J. M. Arellano  (ACI MSc project, FHNW)
 """
 
 from __future__ import annotations
@@ -208,6 +207,18 @@ class PostHocConfig(BaseModel):
 # 3. NUMERICAL UTILITIES
 # =============================================================================
 
+# =============================================================================
+# FUNCTIONAL BLOCK: Nonparametric Statistics & Multiple-Comparison Control
+# WHAT IT IS: The reusable statistical primitives for the post-hoc analyses.
+# WHAT IT DOES: Provides a zero-variance-safe Wilcoxon test, the Cliff's delta
+#     effect size, a paired bootstrap median CI, Holm-Bonferroni correction, and
+#     the He variance target.
+# HOW IT DOES IT: safe_wilcoxon short-circuits identical/empty inputs to (0,1);
+#     cliffs_delta computes the dominance statistic; bootstrap_paired_median_ci
+#     resamples paired differences; holm_bonferroni applies the step-down
+#     adjustment with clipping; he_target_variance returns 2 / fan_in.
+# =============================================================================
+
 def safe_wilcoxon(x: np.ndarray, y: np.ndarray, alternative: str = "two-sided"
                   ) -> Tuple[float, float]:
     """Paired Wilcoxon signed-rank with zero-variance short-circuit.
@@ -292,6 +303,17 @@ def he_target_variance(fan_in: int) -> float:
 
 # =============================================================================
 # 4. DATA LOADERS
+# =============================================================================
+
+# =============================================================================
+# FUNCTIONAL BLOCK: Artifact Loaders (MOD7 / MOD9 / Phase B Meta-Features)
+# WHAT IT IS: The ingestion layer that reads upstream artifacts into tidy frames.
+# WHAT IT DOES: Loads per-trial and summary results from MOD7 JSONs, parsed rule
+#     equations from MOD9 text files, and normalised Phase B meta-features.
+# HOW IT DOES IT: each loader globs its source directory, parses the records, and
+#     returns a schema-stable DataFrame (declaring columns explicitly so the
+#     empty case stays valid); PhaseBMetaFeatureLoader applies the Phase-A z-score
+#     parameters to the validation meta-features.
 # =============================================================================
 
 class MOD7DataLoader:
@@ -439,7 +461,16 @@ class MOD9RuleLoader:
                 "equation_str": eq_str,
                 "expr": expr,
             })
-        df = pd.DataFrame.from_records(rows)
+        # When no MOD9 artifacts are present, ``from_records([])`` yields a
+        # column-less frame; declare the schema explicitly so downstream
+        # column access (and the parse-count log below) stays valid on the
+        # empty path.
+        if not rows:
+            df = pd.DataFrame(columns=[
+                "activation", "topology", "rank", "equation_str", "expr",
+            ])
+        else:
+            df = pd.DataFrame.from_records(rows)
         log.info("loaded %d MOD9 equations (%d successfully parsed)",
                  len(df), int(df["expr"].notna().sum()))
         return df
@@ -485,6 +516,17 @@ class PhaseBMetaFeatureLoader:
 
 # =============================================================================
 # 5. ANALYSIS A — HE-DISTANCE QUANTIFICATION
+# =============================================================================
+
+# =============================================================================
+# FUNCTIONAL BLOCK: He-Distance & Pareto-Rank Diagnostics
+# WHAT IT IS: The analysers that locate discovered rules relative to He scaling
+#     and assess Rank-1 faithfulness.
+# WHAT IT DOES: Computes each rule's median variance versus its He target and
+#     checks whether Rank-1 is the best loss/epoch representative of its cell.
+# HOW IT DOES IT: HeDistanceAnalyzer evaluates the rule across Phase B, takes the
+#     median variance and the ratio to 2/fan_in; ParetoRankComparator ranks the
+#     methods within each cell and flags non-faithful Rank-1 selections.
 # =============================================================================
 
 class HeDistanceAnalyzer:
@@ -636,6 +678,18 @@ class ParetoRankComparator:
 
 # =============================================================================
 # 7. ANALYSIS C — FAILURE-MODE TAXONOMY
+# =============================================================================
+
+# =============================================================================
+# FUNCTIONAL BLOCK: Structural Failure-Mode Taxonomy
+# WHAT IT IS: The classifier that assigns each discovered rule a structural
+#     category.
+# WHAT IT DOES: Labels a rule as pure_constant, protected_artifact, unbounded,
+#     bounded_trig, origin_collapsing, he_linear, other_feature_dep, or
+#     unparseable.
+# HOW IT DOES IT: classify inspects the simplified SymPy expression - free
+#     symbols, operator shapes, leading-coefficient scale relative to the He
+#     constant, and bounded-trig envelopes - and returns the matching category.
 # =============================================================================
 
 class FailureModeTaxonomist:
@@ -836,6 +890,16 @@ class FailureModeTaxonomist:
 # 8. ANALYSIS D — EFFECT SIZES
 # =============================================================================
 
+# =============================================================================
+# FUNCTIONAL BLOCK: Effect Sizes & Loss Visualisation
+# WHAT IT IS: The paired effect-size estimator and the loss-distribution plots.
+# WHAT IT DOES: Quantifies the practical magnitude of GP-versus-baseline loss
+#     differences and renders the supporting figures.
+# HOW IT DOES IT: EffectSizeEstimator computes Cliff's delta with bootstrap CIs
+#     and a two-sided Wilcoxon per (cell, baseline); LossVisualizer draws the
+#     per-cell loss distributions with the shared palette.
+# =============================================================================
+
 class EffectSizeEstimator:
     """Paired Cliff's delta plus bootstrap median-difference 95% CI.
 
@@ -1016,6 +1080,17 @@ class LossVisualizer:
 # 10. ANALYSIS F — CLUSTER-STRATIFIED ACCURACY
 # =============================================================================
 
+# =============================================================================
+# FUNCTIONAL BLOCK: Cluster-Stratified Accuracy Analysis
+# WHAT IT IS: The analyser that re-examines accuracy within meta-feature
+#     clusters.
+# WHAT IT DOES: Tests the GP-versus-baseline accuracy advantage separately in
+#     each Phase B cluster.
+# HOW IT DOES IT: ClusterStratifiedAccuracyAnalyzer joins per-trial accuracy to
+#     cluster labels and applies the same paired tests with Holm correction
+#     inside each cluster.
+# =============================================================================
+
 class ClusterStratifiedAccuracyAnalyzer:
     """Parallel to MOD8's cluster-stratified loss analysis, but on accuracy.
 
@@ -1081,6 +1156,16 @@ class ClusterStratifiedAccuracyAnalyzer:
 
 # =============================================================================
 # 11. ORCHESTRATOR
+# =============================================================================
+
+# =============================================================================
+# FUNCTIONAL BLOCK: Orchestration & Entry Point
+# WHAT IT IS: The top-level coordinator that runs the post-hoc suite end to end.
+# WHAT IT DOES: Loads all artifacts, runs each enabled analysis, writes the
+#     output tables and figures, and returns a manifest of what was produced.
+# HOW IT DOES IT: PostHocOrchestrator.run sequences the loaders and analysers
+#     behind existence/enable guards so missing inputs degrade gracefully; main
+#     parses configuration and invokes it.
 # =============================================================================
 
 class PostHocOrchestrator:

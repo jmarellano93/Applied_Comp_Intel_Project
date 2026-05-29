@@ -1,0 +1,5 @@
+QUALITATIVE ANALYSIS: LINEAR / deep_narrow — Rank 5
+Equation: 0.0970277172177405*target_entropy
+
+Empirical Partial Derivatives:
+  d(Variance) / d(target_entropy) = 0.0970277172177405

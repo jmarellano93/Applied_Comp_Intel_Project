@@ -1,0 +1,25 @@
+\begin{table}[htpb]
+\centering
+\caption{Multiobjective Wilcoxon Signed-Rank Test Results: Funnel / Squashing (GP Rank-1 as paired comparator; $\alpha = 0.05$)}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{l | c c c | c c c}
+\hline
+\textbf{Method} & \textbf{Mean Acc (\%)} & \textbf{W-Stat} & \textbf{$p$-value} & \textbf{Mean Loss} & \textbf{W-Stat} & \textbf{$p$-value} \\
+\hline
+\textbf{GP Rule (Rank 1)} & \textbf{78.60} & - & - & \textbf{0.5439} & - & - \\
+GP Rule (Rank 2) & 78.68 & - & - & 0.5262 & - & - \\
+GP Rule (Rank 3) & 78.79 & - & - & 0.5348 & - & - \\
+GP Rule (Rank 4) & 78.57 & - & - & 0.5191 & - & - \\
+GP Rule (Rank 5) & 78.71 & - & - & 0.5353 & - & - \\
+\hline
+Xavier\_Glorot & 78.79 & 3137.5 & 0.8417 (No) & 0.4836 & 5666.0 & 1.0000 (No) \\
+He\_Kaiming & 79.18 & 2602.0 & 0.9618 (No) & 0.5371 & 4124.0 & 0.6771 (No) \\
+LeCun & 79.00 & 2786.5 & 0.9526 (No) & 0.5309 & 4774.0 & 0.9804 (No) \\
+Orthogonal & 78.40 & 3270.5 & 0.6887 (No) & 0.4797 & 5827.0 & 1.0000 (No) \\
+FAVI & 77.92 & 4090.5 & 0.0273 (\textbf{Yes}) & 0.4821 & 5903.0 & 1.0000 (No) \\
+Laor & 76.96 & 5390.5 & 0.0000 (\textbf{Yes}) & 0.6088 & 2657.0 & 0.0008 (\textbf{Yes}) \\
+\hline
+\end{tabular}
+}
+\label{tab:multiobjective_results_funnel_squashing}
+\end{table}

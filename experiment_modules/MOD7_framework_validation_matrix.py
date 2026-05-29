@@ -6,19 +6,19 @@ the Phase B validation dataset bench, then emits a per-activation JSON
 artifact summarizing aggregates, raw distributions, and binomial win-matrix
 significance.
 
-Architectural notes versus the previous version:
+Performance and design characteristics:
     * Inner loop migrated from per-call ``PyTorchEvaluator`` to a pooled
       ``FNNTrainer`` keyed by dataset id (one trainer per Phase B dataset,
       reused across all rules × baselines × seeds for that dataset). Same
       ~3-5x speedup pattern as MOD6.
-    * LSUV removed from the baseline roster — the previous implementation
-      was non-canonical (single-pass partial traversal) and the remaining six
-      methods (Xavier, He, LeCun, Orthogonal, FAVI, Laor) already span the
-      variance/orthogonality/data-aware spectrum.
-    * Output path migrated to
+    * The baseline roster is LSUV-free; the six retained methods
+      (Xavier, He, LeCun, Orthogonal, FAVI, Laor) span the
+      variance, orthogonality, and data-aware families required for a
+      representative comparison.
+    * Output path:
       ``experimental_results_analysis_visualizations/reports/MOD7_validation_matrix/``.
-    * ``--quick_test`` flag added: collapses to 1 trial seed × 5 Phase B
-      datasets, used by MSTR3 for pipeline-validation runs.
+    * The ``--quick_test`` flag collapses execution to 1 trial seed x 5 Phase B
+      datasets for fast pipeline-validation runs.
 
 Mathematical Notes:
     * Each per-trial training run uses Adam (lr=5e-3) with ``max_epochs=30``
@@ -92,6 +92,18 @@ def get_validation_reports_directory() -> Path:
 # 2. PROTECTED MATHEMATICAL OPERATORS (must match MOD6's primitive set)
 # =============================================================================
 
+# =============================================================================
+# FUNCTIONAL BLOCK: Protected Primitive Operators & Sigma Sanitisation
+# WHAT IT IS: The numerically guarded primitives used to recompile GP rule
+#     strings, plus the variance post-processor.
+# WHAT IT DOES: Reconstructs the exact operator semantics MOD6 used at discovery
+#     time so a serialised rule evaluates identically here.
+# HOW IT DOES IT: protected_div floors the denominator at 1e-5; protected_sqrt
+#     and protected_log take absolute values; protected_exp clips the exponent
+#     to [-10, 10]; sanitize_sigma_squared rejects non-finite values and returns
+#     the absolute value.
+# =============================================================================
+
 def protected_div(left: float, right: float) -> float:
     """Division with denominator floor at 1e-5."""
     return left / right if abs(right) > 1e-5 else 1.0
@@ -123,6 +135,17 @@ def sanitize_sigma_squared(value: float) -> float:
         raise ValueError("sigma_squared must be finite.")
     return abs(sigma_squared)
 
+
+# =============================================================================
+# FUNCTIONAL BLOCK: GP Rule Recompilation
+# WHAT IT IS: The primitive set and compiler that turn a stored rule string
+#     back into a callable.
+# WHAT IT DOES: Rebuilds the eight-terminal grammar and compiles a rule string
+#     into a function of the meta-feature vector.
+# HOW IT DOES IT: _build_module_pset re-declares the same named terminals and
+#     operators as discovery; compile_gp_rule parses the string against that set
+#     and returns an evaluable callable.
+# =============================================================================
 
 def _build_module_pset() -> "gp.PrimitiveSet":
     """Builds the shared primitive set once at module import.
@@ -180,6 +203,16 @@ def compile_gp_rule(rule_string: str) -> Callable[..., float]:
     return gp.compile(tree, _PSET)
 
 
+# =============================================================================
+# FUNCTIONAL BLOCK: Determinism & Binomial Significance
+# WHAT IT IS: The per-trial seeding helper and the one-tailed binomial test.
+# WHAT IT DOES: Fixes randomness for each trial and quantifies whether GP wins a
+#     majority of paired trials beyond chance.
+# HOW IT DOES IT: seed_runtime seeds random/NumPy/PyTorch; calculate_binomial_p_value
+#     returns 1 - F(wins-1; trials, 0.5) under H0 = 0.5, with guards for the
+#     zero-trial and zero-win boundaries.
+# =============================================================================
+
 def seed_runtime(seed: int) -> None:
     """Resets the full RNG stack for cross-trial reproducibility."""
     random.seed(seed)
@@ -210,6 +243,18 @@ def calculate_binomial_p_value(wins: int, total_trials: int) -> float:
 
 # =============================================================================
 # 3. BASELINE INITIALIZATION SCHEMES
+# =============================================================================
+
+# =============================================================================
+# FUNCTIONAL BLOCK: Baseline Initialisation Schemes
+# WHAT IT IS: The dispatcher that applies one of the six comparison baselines to
+#     a model's weights.
+# WHAT IT DOES: Initialises every linear layer according to the named scheme and
+#     zeroes biases, raising on an unknown name.
+# HOW IT DOES IT: apply_baseline_initialization branches on the method string
+#     (Xavier, He, LeCun, Orthogonal, FAVI, Laor), applies the corresponding
+#     variance or data-aware rule per layer, and rejects unrecognised methods
+#     with a ValueError.
 # =============================================================================
 
 def apply_baseline_initialization(
@@ -290,6 +335,18 @@ def apply_baseline_initialization(
 
 # =============================================================================
 # 4. POOLED TRAINER UTILITIES
+# =============================================================================
+
+# =============================================================================
+# FUNCTIONAL BLOCK: Per-Trial Training & Evaluation
+# WHAT IT IS: The pooled-trainer accessor and the routines that score a GP rule
+#     or a baseline on one dataset.
+# WHAT IT DOES: Trains the network under a given initialisation and returns its
+#     terminal loss, accuracy, and epochs-to-target.
+# HOW IT DOES IT: _get_or_build_trainer reuses one FNNTrainer per dataset id;
+#     _compute_validation_loss reads the converged loss; the _evaluate_* helpers
+#     apply the GP-derived variance or the baseline scheme and run the trainer;
+#     _select_phase_b_ids restricts the dataset set under --quick_test.
 # =============================================================================
 
 def _get_or_build_trainer(

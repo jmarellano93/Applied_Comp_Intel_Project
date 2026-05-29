@@ -1,5 +1,0 @@
-QUALITATIVE ANALYSIS: AGGREGATION / shallow — Rank 3
-Equation: 0.0297326363843313*log(Abs(hopkins) + 1/100000)
-
-Empirical Partial Derivatives:
-  d(Variance) / d(hopkins) = 0.0297326363843313*sign(hopkins)/(Abs(hopkins) + 1/100000)

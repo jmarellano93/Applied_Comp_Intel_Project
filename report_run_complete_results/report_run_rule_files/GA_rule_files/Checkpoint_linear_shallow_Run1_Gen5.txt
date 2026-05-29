@@ -1,0 +1,65 @@
+APPLIED COMPUTATIONAL INTELLIGENCE: MODULE 6 RESULTS
+Activation Function: LINEAR
+Topology: shallow
+Status: CHECKPOINT (Generation 5)
+Mode: Plan A Pareto (NSGA-II)
+========================================================================
+--- SYSTEM & ENVIRONMENT LOG ---
+Python Version: 3.12.13
+PyTorch Version: 2.5.0+cu124
+DEAP Version: 1.4
+Scikit-Learn Version: 1.8.0
+OS Platform: Linux-6.8.0-117-generic-x86_64-with-glibc2.39
+Hardware: x86_64 / x86_64
+Execution Target: CPU-ONLY (Phase A shallow FNN)
+PyTorch Threads -> intra_op: 4 | inter_op: 1
+Random Seed: 42
+Git Commit: 6510ae6ce7d4d6e474eeffd97c861b5e7f5de6cc
+--------------------------------
+========================================================================
+Population: 100 | Generations: 20
+Datasets/Rule: 20 | Batch: 64 | Topology: shallow
+========================================================================
+
+Top Discovered Rules-of-Thumb:
+
+Rank 1:
+Equation: mul(n_d_ratio, target_entropy)
+Fitness: [Acc: 0.7438, Epochs: 21.30, Bloat: 3.0]
+
+Rank 2:
+Equation: mul(target_entropy, n_d_ratio)
+Fitness: [Acc: 0.7438, Epochs: 21.30, Bloat: 3.0]
+
+Rank 3:
+Equation: mul(protected_sqrt(target_entropy), mul(add(feat_kurtosis, iqr_dev), target_entropy))
+Fitness: [Acc: 0.7414, Epochs: 21.15, Bloat: 8.0]
+
+Rank 4:
+Equation: sub(neg(silhouette), protected_exp(pc_eigen))
+Fitness: [Acc: 0.7407, Epochs: 20.40, Bloat: 5.0]
+
+Rank 5:
+Equation: add(cos(sin(davies_bouldin)), silhouette)
+Fitness: [Acc: 0.7399, Epochs: 19.30, Bloat: 5.0]
+
+Rank 6:
+Equation: mul(davies_bouldin, n_d_ratio)
+Fitness: [Acc: 0.7383, Epochs: 20.95, Bloat: 3.0]
+
+Rank 7:
+Equation: sub(target_entropy, protected_exp(pc_eigen))
+Fitness: [Acc: 0.7342, Epochs: 20.70, Bloat: 4.0]
+
+Rank 8:
+Equation: add(n_d_ratio, 0.5357443647520308)
+Fitness: [Acc: 0.7337, Epochs: 20.55, Bloat: 3.0]
+
+Rank 9:
+Equation: protected_sqrt(cos(target_entropy))
+Fitness: [Acc: 0.7335, Epochs: 20.25, Bloat: 3.0]
+
+Rank 10:
+Equation: neg(mul(n_d_ratio, feat_kurtosis))
+Fitness: [Acc: 0.7325, Epochs: 19.95, Bloat: 4.0]
+

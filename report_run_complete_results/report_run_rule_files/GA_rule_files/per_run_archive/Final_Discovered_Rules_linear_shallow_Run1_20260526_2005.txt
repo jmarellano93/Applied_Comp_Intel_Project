@@ -1,0 +1,65 @@
+APPLIED COMPUTATIONAL INTELLIGENCE: MODULE 6 RESULTS
+Activation Function: LINEAR
+Topology: shallow
+Status: PER-RUN PARETO FRONT (Run 1)
+Mode: Plan A Pareto (NSGA-II)
+========================================================================
+--- SYSTEM & ENVIRONMENT LOG ---
+Python Version: 3.12.13
+PyTorch Version: 2.5.0+cu124
+DEAP Version: 1.4
+Scikit-Learn Version: 1.8.0
+OS Platform: Linux-6.8.0-117-generic-x86_64-with-glibc2.39
+Hardware: x86_64 / x86_64
+Execution Target: CPU-ONLY (Phase A shallow FNN)
+PyTorch Threads -> intra_op: 4 | inter_op: 1
+Random Seed: 42
+Git Commit: 6510ae6ce7d4d6e474eeffd97c861b5e7f5de6cc
+--------------------------------
+========================================================================
+Population: 100 | Generations: 20
+Datasets/Rule: 20 | Batch: 64 | Topology: shallow
+========================================================================
+
+Top Discovered Rules-of-Thumb:
+
+Rank 1:
+Equation: sub(-0.8261223347411677, silhouette)
+Fitness: [Acc: 0.7453, Epochs: 21.50, Bloat: 3.0]
+
+Rank 2:
+Equation: protected_sqrt(protected_exp(davies_bouldin))
+Fitness: [Acc: 0.7407, Epochs: 20.50, Bloat: 3.0]
+
+Rank 3:
+Equation: protected_log(mul(add(hopkins, -0.8261223347411677), sin(feat_kurtosis)))
+Fitness: [Acc: 0.7404, Epochs: 20.20, Bloat: 7.0]
+
+Rank 4:
+Equation: protected_log(mul(add(hopkins, pc_eigen), sin(feat_kurtosis)))
+Fitness: [Acc: 0.7398, Epochs: 19.95, Bloat: 7.0]
+
+Rank 5:
+Equation: sub(hopkins, pc_eigen)
+Fitness: [Acc: 0.7370, Epochs: 19.45, Bloat: 3.0]
+
+Rank 6:
+Equation: sub(pc_eigen, hopkins)
+Fitness: [Acc: 0.7370, Epochs: 19.45, Bloat: 3.0]
+
+Rank 7:
+Equation: protected_log(feat_kurtosis)
+Fitness: [Acc: 0.7369, Epochs: 19.65, Bloat: 2.0]
+
+Rank 8:
+Equation: cos(-0.7676303237468012)
+Fitness: [Acc: 0.7296, Epochs: 19.30, Bloat: 2.0]
+
+Rank 9:
+Equation: -0.22376831246453488
+Fitness: [Acc: 0.7275, Epochs: 22.25, Bloat: 1.0]
+
+Rank 10:
+Equation: cos(protected_div(silhouette, n_d_ratio))
+Fitness: [Acc: 0.7259, Epochs: 19.25, Bloat: 4.0]
+

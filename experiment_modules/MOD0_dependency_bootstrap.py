@@ -51,16 +51,16 @@ from typing import List, Optional, Tuple
 
 # =============================================================================
 # FUNCTIONAL BLOCK: Methodology-Pinned Environment Constants
-# 4A) WHAT IT DOES: Captures the Python interpreter version and the PyTorch
-#     wheel-index URL specified in Section VI Q27 of the methodology document.
-# 4B) PARAMETERS: REQUIRED_PYTHON (3.12.6), MINIMUM_PYTHON (3.12.0),
-#     PYTORCH_INDEX_URL (the official PyTorch +cu121 wheel index).
-# 4C) METHODOLOGICAL JUSTIFICATION: Pinning the interpreter version below
-#     3.12 risks DEAP/PyTorch C-extension ABI breaks; pinning above 3.12
-#     risks not-yet-released scikit-learn wheels. The +cu121 PyTorch wheel
-#     includes CUDA binaries that are dormant on CPU-only execution but are
-#     required to match the exact PyTorch build identifier reported in the
-#     experiment provenance log.
+# WHAT IT DOES: Captures the Python interpreter version and the PyTorch
+#  wheel-index URL specified in Section VI Q27 of the methodology document.
+# PARAMETERS: REQUIRED_PYTHON (3.12.6), MINIMUM_PYTHON (3.12.0),
+#  PYTORCH_INDEX_URL (the official PyTorch +cu121 wheel index).
+# METHODOLOGICAL JUSTIFICATION: Pinning the interpreter version below
+#  3.12 risks DEAP/PyTorch C-extension ABI breaks; pinning above 3.12
+#  risks not-yet-released scikit-learn wheels. The +cu121 PyTorch wheel
+#  includes CUDA binaries that are dormant on CPU-only execution but are
+#  required to match the exact PyTorch build identifier reported in the
+#  experiment provenance log.
 # =============================================================================
 
 REQUIRED_PYTHON: Tuple[int, int, int] = (3, 12, 6)
@@ -70,17 +70,17 @@ PYTORCH_INDEX_URL: str = "https://download.pytorch.org/whl/cu121"
 
 # =============================================================================
 # FUNCTIONAL BLOCK: Package Specification Dataclass
-# 4A) WHAT IT DOES: Encapsulates the metadata needed to install, identify,
-#     and verify a single Python package.
-# 4B) PARAMETERS:
-#     pip_name     - The distribution name passed to ``pip install``.
-#     import_name  - The top-level import name (often, but not always, the
-#                    same as pip_name; e.g. 'sklearn' vs 'scikit-learn').
-#     version      - Optional exact version pin. None means "latest".
-#     index_url    - Optional custom wheel index (PyTorch only).
-# 4C) METHODOLOGICAL JUSTIFICATION: Decoupling pip_name from import_name is
-#     essential because Python's distribution names and module names diverge
-#     for several major scientific packages.
+# WHAT IT DOES: Encapsulates the metadata needed to install, identify,
+#  and verify a single Python package.
+# PARAMETERS:
+#  pip_name     - The distribution name passed to ``pip install``.
+#  import_name  - The top-level import name (often, but not always, the
+#                same as pip_name; e.g. 'sklearn' vs 'scikit-learn').
+#  version      - Optional exact version pin. None means "latest".
+#  index_url    - Optional custom wheel index (PyTorch only).
+# METHODOLOGICAL JUSTIFICATION: Decoupling pip_name from import_name is
+#  essential because Python's distribution names and module names diverge
+#  for several major scientific packages.
 # =============================================================================
 
 @dataclass(frozen=True)
@@ -111,16 +111,16 @@ class PackageSpec:
 
 # =============================================================================
 # FUNCTIONAL BLOCK: Dependency Manifest
-# 4A) WHAT IT DOES: Enumerates the full set of project dependencies, in the
-#     order they should be installed.
-# 4B) PARAMETERS: One PackageSpec per dependency. Version pins follow the
-#     methodology document; ``None`` versions mean "latest stable".
-# 4C) METHODOLOGICAL JUSTIFICATION: Pinned versions (PyTorch, DEAP,
-#     scikit-learn, Pydantic-major) appear in the methodology's software
-#     stack table and must match for exact result reproducibility.
-#     Unpinned versions (numpy, scipy, sympy, etc.) are documented as
-#     "latest" in the methodology and are expected to behave consistently
-#     across minor-version drift.
+# WHAT IT DOES: Enumerates the full set of project dependencies, in the
+#  order they should be installed.
+# PARAMETERS: One PackageSpec per dependency. Version pins follow the
+#  methodology document; ``None`` versions mean "latest stable".
+# METHODOLOGICAL JUSTIFICATION: Pinned versions (PyTorch, DEAP,
+#  scikit-learn, Pydantic-major) appear in the methodology's software
+#  stack table and must match for exact result reproducibility.
+#  Unpinned versions (numpy, scipy, sympy, etc.) are documented as
+#  "latest" in the methodology and are expected to behave consistently
+#  across minor-version drift.
 # =============================================================================
 
 MANIFEST: Tuple[PackageSpec, ...] = (
@@ -162,14 +162,14 @@ MANIFEST: Tuple[PackageSpec, ...] = (
 
 # =============================================================================
 # FUNCTIONAL BLOCK: Resolution + Installation Helpers
-# 4A) WHAT IT DOES: Provides three small helpers that (a) verify interpreter
-#     version, (b) detect whether a given package is already installed at the
-#     correct version, and (c) shell out to pip to install one package.
-# 4B) PARAMETERS: PackageSpec instances; current sys.version_info.
-# 4C) METHODOLOGICAL JUSTIFICATION: Per-package atomic pip calls (rather than
-#     a bundled requirements.txt install) are mandatory because PyTorch's
-#     +cu121 wheel index would contaminate non-PyTorch package resolution if
-#     applied at the batch level.
+# WHAT IT DOES: Provides three small helpers that (a) verify interpreter
+#  version, (b) detect whether a given package is already installed at the
+#  correct version, and (c) shell out to pip to install one package.
+# PARAMETERS: PackageSpec instances; current sys.version_info.
+# METHODOLOGICAL JUSTIFICATION: Per-package atomic pip calls (rather than
+#  a bundled requirements.txt install) are mandatory because PyTorch's
+#  +cu121 wheel index would contaminate non-PyTorch package resolution if
+#  applied at the batch level.
 # =============================================================================
 
 def verify_python_version() -> bool:
@@ -255,12 +255,12 @@ def install_one(spec: PackageSpec, force: bool, dry_run: bool) -> bool:
 
 # =============================================================================
 # FUNCTIONAL BLOCK: Manifest Sweep Orchestrator
-# 4A) WHAT IT DOES: Iterates the manifest, detects status per package, calls
-#     install_one() as needed, and accumulates a summary table.
-# 4B) PARAMETERS: dry_run (preview-only), upgrade (force-reinstall every package).
-# 4C) METHODOLOGICAL JUSTIFICATION: A single-pass linear sweep keeps the
-#     log output strictly ordered by manifest position, which makes the
-#     final summary aligned with the install order and easy to audit.
+# WHAT IT DOES: Iterates the manifest, detects status per package, calls
+#  install_one() as needed, and accumulates a summary table.
+# PARAMETERS: dry_run (preview-only), upgrade (force-reinstall every package).
+# METHODOLOGICAL JUSTIFICATION: A single-pass linear sweep keeps the
+#  log output strictly ordered by manifest position, which makes the
+#  final summary aligned with the install order and easy to audit.
 # =============================================================================
 
 def _version_matches(installed: str, wanted: Optional[str]) -> bool:
@@ -329,12 +329,12 @@ def sweep_manifest(
 
 # =============================================================================
 # FUNCTIONAL BLOCK: Summary Reporter
-# 4A) WHAT IT DOES: Prints a fixed-width aligned summary table of the
-#     manifest sweep results, then returns the count of failures.
-# 4B) PARAMETERS: A list of (pip_name, status, version) rows.
-# 4C) METHODOLOGICAL JUSTIFICATION: A single summary table at the end of
-#     execution gives the user one place to verify the final state of
-#     their environment, independent of the verbose per-package log above.
+# WHAT IT DOES: Prints a fixed-width aligned summary table of the
+#  manifest sweep results, then returns the count of failures.
+# PARAMETERS: A list of (pip_name, status, version) rows.
+# METHODOLOGICAL JUSTIFICATION: A single summary table at the end of
+#  execution gives the user one place to verify the final state of
+#  their environment, independent of the verbose per-package log above.
 # =============================================================================
 
 def print_summary(rows: List[Tuple[str, str, str]]) -> int:
@@ -354,12 +354,12 @@ def print_summary(rows: List[Tuple[str, str, str]]) -> int:
 
 # =============================================================================
 # FUNCTIONAL BLOCK: CLI Entry Point
-# 4A) WHAT IT DOES: Parses CLI args, prints the banner, orchestrates the
-#     verify -> sweep -> summary pipeline, and sets a meaningful exit code.
-# 4B) PARAMETERS: --dry_run, --upgrade.
-# 4C) METHODOLOGICAL JUSTIFICATION: Exit code 0 on success / 1 on failure
-#     allows CI pipelines and bash scripts to chain MOD0 with downstream
-#     experiment launchers via the standard ``&&`` operator.
+# WHAT IT DOES: Parses CLI args, prints the banner, orchestrates the
+#  verify -> sweep -> summary pipeline, and sets a meaningful exit code.
+# PARAMETERS: --dry_run, --upgrade.
+# METHODOLOGICAL JUSTIFICATION: Exit code 0 on success / 1 on failure
+#  allows CI pipelines and bash scripts to chain MOD0 with downstream
+#  experiment launchers via the standard ``&&`` operator.
 # =============================================================================
 
 def main() -> None:
