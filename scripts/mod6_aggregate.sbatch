@@ -26,7 +26,7 @@
 #SBATCH --output=logs/mod6_aggregate_%j.log
 #SBATCH --error=logs/mod6_aggregate_%j.err
 #SBATCH --mail-type=END,FAIL
-#SBATCH --mail-user=FHNW_EMAIL_ADDRESS_HERE
+#SBATCH --mail-user=john.arellano@students.fhnw.ch
 
 echo "============================================================"
 echo "MOD6 consensus aggregation pass"

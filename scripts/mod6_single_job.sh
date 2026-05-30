@@ -21,5 +21,5 @@ sbatch \
     --output="logs/mod6_single_${ACT}_${TOP}_s${SEED}_%j.log" \
     --error="logs/mod6_single_${ACT}_${TOP}_s${SEED}_%j.err" \
     --mail-type=END,FAIL \
-    --mail-user=FHNW_EMAIL_ADDRESS_HERE \
+    --mail-user=john.arellano@students.fhnw.ch \
     --wrap="cd \$HOME/Applied_Comp_Intel_Project && conda run --no-capture-output -n aci_project python -u experiment_modules/MOD6_om_mogp_engine_final.py --activations ${ACT} --topologies ${TOP} --gp_run_seeds ${SEED} --population_size 100 --skip_aggregation --force_rerun"

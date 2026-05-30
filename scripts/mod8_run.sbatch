@@ -7,7 +7,7 @@
 #SBATCH --output=logs/mod8_%j.log
 #SBATCH --error=logs/mod8_%j.err
 #SBATCH --mail-type=END,FAIL
-#SBATCH --mail-user=FHNW_EMAIL_ADDRESS_HERE
+#SBATCH --mail-user=john.arellano@students.fhnw.ch
 
 # =============================================================================
 # MOD8 Statistical Reporter Run (Calculon)

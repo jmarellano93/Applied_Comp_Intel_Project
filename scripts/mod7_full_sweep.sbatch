@@ -7,7 +7,7 @@
 #SBATCH --output=logs/mod7_sweep_%j.log
 #SBATCH --error=logs/mod7_sweep_%j.err
 #SBATCH --mail-type=END,FAIL
-#SBATCH --mail-user=FHNW_EMAIL_ADDRESS_HERE
+#SBATCH --mail-user=john.arellano@students.fhnw.ch
 
 # =============================================================================
 # MOD7 Full Validation Sweep (Calculon)
