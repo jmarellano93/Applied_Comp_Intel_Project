@@ -1,0 +1,65 @@
+APPLIED COMPUTATIONAL INTELLIGENCE: MODULE 6 RESULTS
+Activation Function: LINEAR
+Topology: funnel
+Status: PER-RUN PARETO FRONT (Run 1)
+Mode: Plan A Pareto (NSGA-II)
+========================================================================
+--- SYSTEM & ENVIRONMENT LOG ---
+Python Version: 3.12.13
+PyTorch Version: 2.5.0+cu124
+DEAP Version: 1.4
+Scikit-Learn Version: 1.8.0
+OS Platform: Linux-6.8.0-117-generic-x86_64-with-glibc2.39
+Hardware: x86_64 / x86_64
+Execution Target: CPU-ONLY (Phase A shallow FNN)
+PyTorch Threads -> intra_op: 4 | inter_op: 1
+Random Seed: 42
+Git Commit: 6510ae6ce7d4d6e474eeffd97c861b5e7f5de6cc
+--------------------------------
+========================================================================
+Population: 100 | Generations: 20
+Datasets/Rule: 20 | Batch: 64 | Topology: funnel
+========================================================================
+
+Top Discovered Rules-of-Thumb:
+
+Rank 1:
+Equation: protected_div(feat_kurtosis, davies_bouldin)
+Fitness: [Acc: 0.7381, Epochs: 22.45, Bloat: 3.0]
+
+Rank 2:
+Equation: sin(add(mul(n_d_ratio, davies_bouldin), add(sub(pc_eigen, iqr_dev), sin(n_d_ratio))))
+Fitness: [Acc: 0.7373, Epochs: 20.75, Bloat: 11.0]
+
+Rank 3:
+Equation: cos(protected_log(0.36202084899536957))
+Fitness: [Acc: 0.7355, Epochs: 21.40, Bloat: 3.0]
+
+Rank 4:
+Equation: neg(mul(silhouette, mul(sin(hopkins), protected_div(davies_bouldin, feat_kurtosis))))
+Fitness: [Acc: 0.7335, Epochs: 21.20, Bloat: 9.0]
+
+Rank 5:
+Equation: add(protected_exp(protected_div(hopkins, hopkins)), pc_eigen)
+Fitness: [Acc: 0.7323, Epochs: 20.25, Bloat: 6.0]
+
+Rank 6:
+Equation: protected_log(iqr_dev)
+Fitness: [Acc: 0.7316, Epochs: 20.85, Bloat: 2.0]
+
+Rank 7:
+Equation: add(protected_exp(silhouette), cos(silhouette))
+Fitness: [Acc: 0.7312, Epochs: 20.75, Bloat: 5.0]
+
+Rank 8:
+Equation: add(protected_exp(hopkins), pc_eigen)
+Fitness: [Acc: 0.7272, Epochs: 20.65, Bloat: 4.0]
+
+Rank 9:
+Equation: sub(iqr_dev, target_entropy)
+Fitness: [Acc: 0.7265, Epochs: 20.50, Bloat: 3.0]
+
+Rank 10:
+Equation: protected_sqrt(cos(-0.7686162910199474))
+Fitness: [Acc: 0.7263, Epochs: 20.20, Bloat: 3.0]
+

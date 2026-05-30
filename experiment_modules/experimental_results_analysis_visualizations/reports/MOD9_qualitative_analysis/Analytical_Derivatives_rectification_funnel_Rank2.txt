@@ -1,0 +1,6 @@
+QUALITATIVE ANALYSIS: RECTIFICATION / funnel — Rank 2
+Equation: iqr_dev*cos(log(Abs(silhouette) + 1/100000))
+
+Empirical Partial Derivatives:
+  d(Variance) / d(silhouette) = -iqr_dev*sin(log(Abs(silhouette) + 1/100000))*sign(silhouette)/(Abs(silhouette) + 1/100000)
+  d(Variance) / d(iqr_dev) = cos(log(Abs(silhouette) + 1/100000))

@@ -1,0 +1,65 @@
+APPLIED COMPUTATIONAL INTELLIGENCE: MODULE 6 RESULTS
+Activation Function: RECTIFICATION
+Topology: funnel
+Status: PER-RUN PARETO FRONT (Run 1)
+Mode: Plan A Pareto (NSGA-II)
+========================================================================
+--- SYSTEM & ENVIRONMENT LOG ---
+Python Version: 3.12.13
+PyTorch Version: 2.5.0+cu124
+DEAP Version: 1.4
+Scikit-Learn Version: 1.8.0
+OS Platform: Linux-6.8.0-117-generic-x86_64-with-glibc2.39
+Hardware: x86_64 / x86_64
+Execution Target: CPU-ONLY (Phase A shallow FNN)
+PyTorch Threads -> intra_op: 4 | inter_op: 1
+Random Seed: 42
+Git Commit: 6510ae6ce7d4d6e474eeffd97c861b5e7f5de6cc
+--------------------------------
+========================================================================
+Population: 100 | Generations: 20
+Datasets/Rule: 20 | Batch: 64 | Topology: funnel
+========================================================================
+
+Top Discovered Rules-of-Thumb:
+
+Rank 1:
+Equation: mul(mul(pc_eigen, sub(protected_sqrt(0.8657897968729671), 0.9938590108634688)), protected_sqrt(n_d_ratio))
+Fitness: [Acc: 0.7973, Epochs: 14.35, Bloat: 9.0]
+
+Rank 2:
+Equation: mul(iqr_dev, cos(protected_log(silhouette)))
+Fitness: [Acc: 0.7948, Epochs: 16.75, Bloat: 5.0]
+
+Rank 3:
+Equation: mul(cos(-0.1447009642233088), 0.029732636384331323)
+Fitness: [Acc: 0.7918, Epochs: 17.30, Bloat: 4.0]
+
+Rank 4:
+Equation: neg(0.029732636384331323)
+Fitness: [Acc: 0.7905, Epochs: 17.45, Bloat: 2.0]
+
+Rank 5:
+Equation: mul(protected_exp(-0.700973764975481), 0.029732636384331323)
+Fitness: [Acc: 0.7887, Epochs: 15.50, Bloat: 4.0]
+
+Rank 6:
+Equation: mul(-0.23670721506975823, mul(-0.23670721506975823, hopkins))
+Fitness: [Acc: 0.7878, Epochs: 15.15, Bloat: 5.0]
+
+Rank 7:
+Equation: mul(0.8657897968729671, 0.029732636384331323)
+Fitness: [Acc: 0.7863, Epochs: 17.40, Bloat: 3.0]
+
+Rank 8:
+Equation: mul(davies_bouldin, 0.029732636384331323)
+Fitness: [Acc: 0.7862, Epochs: 17.15, Bloat: 3.0]
+
+Rank 9:
+Equation: mul(0.9938590108634688, 0.029732636384331323)
+Fitness: [Acc: 0.7852, Epochs: 16.80, Bloat: 3.0]
+
+Rank 10:
+Equation: mul(0.029732636384331323, target_entropy)
+Fitness: [Acc: 0.7850, Epochs: 16.35, Bloat: 3.0]
+

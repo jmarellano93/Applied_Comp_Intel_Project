@@ -1,0 +1,5 @@
+QUALITATIVE ANALYSIS: SMOOTH / shallow — Rank 4
+Equation: -0.012968330220738*feat_kurtosis
+
+Empirical Partial Derivatives:
+  d(Variance) / d(feat_kurtosis) = -0.0129683302207380

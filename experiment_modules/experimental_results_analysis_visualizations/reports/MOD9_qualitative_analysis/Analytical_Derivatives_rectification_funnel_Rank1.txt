@@ -1,0 +1,6 @@
+QUALITATIVE ANALYSIS: RECTIFICATION / funnel — Rank 1
+Equation: -0.0633807484236808*pc_eigen*sqrt(Abs(n_d_ratio))
+
+Empirical Partial Derivatives:
+  d(Variance) / d(pc_eigen) = -0.0633807484236808*sqrt(Abs(n_d_ratio))
+  d(Variance) / d(n_d_ratio) = -0.0316903742118404*pc_eigen*sign(n_d_ratio)/sqrt(Abs(n_d_ratio))

@@ -1,0 +1,61 @@
+APPLIED COMPUTATIONAL INTELLIGENCE: MODULE 6 RESULTS
+Activation Function: SMOOTH
+Topology: funnel
+Status: CONSENSUS PARETO FRONT (aggregated across runs)
+Mode: Plan A Pareto (NSGA-II)
+========================================================================
+--- SYSTEM & ENVIRONMENT LOG ---
+Python Version: 3.12.13
+PyTorch Version: 2.5.0+cu124
+DEAP Version: 1.4
+Scikit-Learn Version: 1.8.0
+OS Platform: Linux-6.8.0-117-generic-x86_64-with-glibc2.39
+Hardware: x86_64 / x86_64
+Execution Target: CPU-ONLY (Phase A shallow FNN)
+PyTorch Threads -> intra_op: 4 | inter_op: 1
+Random Seed: 42
+Git Commit: 6510ae6ce7d4d6e474eeffd97c861b5e7f5de6cc
+--------------------------------
+========================================================================
+Population: 100 | Generations: 20
+Datasets/Rule: 20 | Batch: 64 | Topology: funnel
+========================================================================
+
+Top Discovered Rules-of-Thumb:
+
+Rank 1:
+Equation: mul(add(neg(target_entropy), davies_bouldin), 0.029732636384331323)
+Fitness: [Acc: 0.7968, Epochs: 15.25, Bloat: 6.0]
+
+Rank 2:
+Equation: mul(-0.2137255810009948, 0.274891287813118)
+Fitness: [Acc: 0.7930, Epochs: 16.20, Bloat: 3.0]
+
+Rank 3:
+Equation: cos(protected_exp(0.4113348935199814))
+Fitness: [Acc: 0.7910, Epochs: 16.05, Bloat: 3.0]
+
+Rank 4:
+Equation: mul(n_d_ratio, mul(mul(pc_eigen, iqr_dev), hopkins))
+Fitness: [Acc: 0.7890, Epochs: 15.00, Bloat: 7.0]
+
+Rank 5:
+Equation: -0.10553424357603536
+Fitness: [Acc: 0.7881, Epochs: 16.95, Bloat: 1.0]
+
+Rank 6:
+Equation: mul(0.029732636384331323, add(iqr_dev, silhouette))
+Fitness: [Acc: 0.7857, Epochs: 15.25, Bloat: 5.0]
+
+Rank 7:
+Equation: mul(-0.18896167631149652, -0.30304738102421713)
+Fitness: [Acc: 0.7836, Epochs: 14.70, Bloat: 3.0]
+
+Rank 8:
+Equation: -0.05588181930840008
+Fitness: [Acc: 0.7786, Epochs: 16.15, Bloat: 1.0]
+
+Rank 9:
+Equation: 0.06402070156578077
+Fitness: [Acc: 0.7718, Epochs: 16.05, Bloat: 1.0]
+

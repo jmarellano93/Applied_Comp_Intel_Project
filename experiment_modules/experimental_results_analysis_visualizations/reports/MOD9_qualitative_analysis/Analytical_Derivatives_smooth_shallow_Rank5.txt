@@ -1,0 +1,5 @@
+QUALITATIVE ANALYSIS: SMOOTH / shallow — Rank 5
+Equation: 0.0187796920530200
+
+Empirical Partial Derivatives:
+  (expression is constant — no partial derivatives)

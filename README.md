@@ -43,9 +43,9 @@ For each module below: **(A)** what it is, **(B)** what it does, **(C)** selecte
 
 **(A) What it is.** An idempotent installer and verifier for every third-party package the pipeline requires.
 
-**(B) What it does.** It checks the running interpreter version against a pinned minimum, then iterates a manifest of packages, installing or upgrading any that are missing or version-mismatched, and prints a summary of the resulting environment. It can be re-run safely; already-correct packages are reported and skipped.
+**(B) What it does.** It checks the running interpreter version against a pinned minimum, then iterates a manifest of packages, installing or upgrading any that are missing or version-mismatched, and prints a summary of the resulting environment. It can be re-run safely; already-correct packages are reported and skipped. It also configures the project's user-specific credentials: run with `--configure` (or confirm the prompt shown after a normal run) and it replaces the `OPENML_API_KEY_HERE` and `FHNW_EMAIL_ADDRESS_HERE` placeholder tokens, in place, across the project's source and Slurm scripts with the values you supply (see Sections 3.4 and 4.2).
 
-**(C) Methodological choices.** Packages are installed with per-package, atomic pip calls rather than a single bundled install. This is required because the PyTorch wheel is served from a dedicated index URL, and applying that index at the batch level would contaminate resolution of the other packages. The manifest decouples the pip distribution name from the import name (for example, scikit-learn versus sklearn) so that the installed-versus-required check is reliable.
+**(C) Methodological choices.** Packages are installed with per-package, atomic pip calls rather than a single bundled install. This is required because the PyTorch wheel is served from a dedicated index URL, and applying that index at the batch level would contaminate resolution of the other packages. The manifest decouples the pip distribution name from the import name (for example, scikit-learn versus sklearn) so that the installed-versus-required check is reliable. The module imports only the Python standard library at top level, so it can run on a bare interpreter before any dependency exists. The credential rewrite reads and writes files byte-for-byte so each file's line endings are preserved, is idempotent, and skips the documentation files (`README.md`, `PROJECT_DOCUMENTATION.md`) so the placeholder instructions they contain are never altered.
 
 ### MOD1 — OpenML CC-18 Pipeline Selector
 *File:* `MOD1_pipeline_selector.py` · *Tests:* `MOD1_unit_test.py`
@@ -164,6 +164,9 @@ python experiment_modules/MOD0_dependency_bootstrap.py
 
 # to force a clean re-install of everything:
 python experiment_modules/MOD0_dependency_bootstrap.py --upgrade
+
+# to set your OpenML API key and FHNW e-mail across the project (see Section 3.4):
+python experiment_modules/MOD0_dependency_bootstrap.py --configure
 ```
 
 MOD0 installs the scientific stack (NumPy, SciPy, pandas), the machine-learning stack (scikit-learn, PyTorch), the evolutionary-computation library (DEAP), symbolic mathematics (SymPy), data ingestion (OpenML), validation (Pydantic v2), visualization (Matplotlib, Seaborn), progress reporting (tqdm), and the test framework (pytest). A non-zero exit code indicates the interpreter is below the minimum version or a package failed to install.
@@ -177,13 +180,29 @@ conda create -n aci_project python=3.12
 conda activate aci_project
 python experiment_modules/MOD0_dependency_bootstrap.py
 ```
-### 3.4 Placeholders for User-Specific Information:
+### 3.4 Placeholders for User-Specific Information
 
-Search for these placeholders in the project and insert your user specific information before beginning to ensure the Modules run smoothly.
+The committed project ships with two placeholder tokens that stand in for your personal credentials:
 
-OPENML_API_KEY_HERE
+- `OPENML_API_KEY_HERE` — your OpenML API key, read by MOD1.
+- `FHNW_EMAIL_ADDRESS_HERE` — your FHNW e-mail address, used by the Slurm batch scripts for `--mail-user` job notifications.
 
-FHNW_EMAIL_ADDRESS_HERE
+These must be replaced with your own values before the affected modules will run correctly. The recommended way is to let MOD0 do it for you, which substitutes both tokens everywhere they occur in one step:
+
+```
+# interactive: prompts for the e-mail (visible) and the API key (hidden, entered twice)
+python experiment_modules/MOD0_dependency_bootstrap.py --configure
+
+# non-interactive / scriptable:
+python experiment_modules/MOD0_dependency_bootstrap.py --configure \
+    --email you@students.fhnw.ch --openml_key <your-32-char-openml-key>
+
+# preview the changes without writing anything:
+python experiment_modules/MOD0_dependency_bootstrap.py --configure --dry_run \
+    --email you@students.fhnw.ch --openml_key <your-32-char-openml-key>
+```
+
+A normal `python experiment_modules/MOD0_dependency_bootstrap.py` run also detects any remaining placeholders after installing dependencies and, when run interactively, offers to configure them then (`--no_configure` suppresses this). The rewrite preserves each file's exact bytes and line endings, is idempotent (once the tokens are gone, re-running reports there is nothing to do), and skips the documentation files **`README.md` and `PROJECT_DOCUMENTATION.md`** on purpose — those files reference the placeholder tokens as instructions, so they are intentionally left unchanged. If you prefer to set the values by hand instead, search the project for the two tokens and replace them directly.
 
 ---
 
@@ -195,7 +214,7 @@ Scripts resolve their input and output directories relative to their own locatio
 
 ### 4.2 Supplying the OpenML API key
 
-MOD1 reads the OpenML API key from its configuration. The committed default is a placeholder. Provide your own key by editing the configuration default locally, or by setting it in your OpenML configuration file, before running MOD1. Do not commit a real key to version control.
+MOD1 reads the OpenML API key from its configuration, where the committed default is the placeholder `OPENML_API_KEY_HERE`. The simplest way to supply your own key is `python experiment_modules/MOD0_dependency_bootstrap.py --configure` (see Section 3.4), which writes it into MOD1 for you; alternatively, edit the configuration default directly or set the key in your OpenML configuration file before running MOD1. Do not commit a real key to version control.
 
 ### 4.3 Local end-to-end run (small scale)
 

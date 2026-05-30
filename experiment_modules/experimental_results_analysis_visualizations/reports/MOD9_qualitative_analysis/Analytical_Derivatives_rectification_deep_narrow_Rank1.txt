@@ -1,0 +1,5 @@
+QUALITATIVE ANALYSIS: RECTIFICATION / deep_narrow — Rank 1
+Equation: 0.0195246700939174
+
+Empirical Partial Derivatives:
+  (expression is constant — no partial derivatives)

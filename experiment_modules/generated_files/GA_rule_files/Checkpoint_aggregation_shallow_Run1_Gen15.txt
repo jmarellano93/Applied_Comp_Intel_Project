@@ -1,0 +1,65 @@
+APPLIED COMPUTATIONAL INTELLIGENCE: MODULE 6 RESULTS
+Activation Function: AGGREGATION
+Topology: shallow
+Status: CHECKPOINT (Generation 15)
+Mode: Plan A Pareto (NSGA-II)
+========================================================================
+--- SYSTEM & ENVIRONMENT LOG ---
+Python Version: 3.12.13
+PyTorch Version: 2.5.0+cu124
+DEAP Version: 1.4
+Scikit-Learn Version: 1.8.0
+OS Platform: Linux-6.8.0-117-generic-x86_64-with-glibc2.39
+Hardware: x86_64 / x86_64
+Execution Target: CPU-ONLY (Phase A shallow FNN)
+PyTorch Threads -> intra_op: 4 | inter_op: 1
+Random Seed: 42
+Git Commit: 6510ae6ce7d4d6e474eeffd97c861b5e7f5de6cc
+--------------------------------
+========================================================================
+Population: 100 | Generations: 20
+Datasets/Rule: 20 | Batch: 64 | Topology: shallow
+========================================================================
+
+Top Discovered Rules-of-Thumb:
+
+Rank 1:
+Equation: mul(sin(protected_div(0.3984922648183242, davies_bouldin)), 0.029732636384331323)
+Fitness: [Acc: 0.7888, Epochs: 16.85, Bloat: 6.0]
+
+Rank 2:
+Equation: mul(0.029732636384331323, protected_log(hopkins))
+Fitness: [Acc: 0.7883, Epochs: 16.75, Bloat: 4.0]
+
+Rank 3:
+Equation: mul(0.029732636384331323, pc_eigen)
+Fitness: [Acc: 0.7869, Epochs: 17.00, Bloat: 3.0]
+
+Rank 4:
+Equation: mul(pc_eigen, 0.029732636384331323)
+Fitness: [Acc: 0.7869, Epochs: 17.00, Bloat: 3.0]
+
+Rank 5:
+Equation: mul(target_entropy, 0.029732636384331323)
+Fitness: [Acc: 0.7869, Epochs: 16.95, Bloat: 3.0]
+
+Rank 6:
+Equation: mul(silhouette, 0.029732636384331323)
+Fitness: [Acc: 0.7864, Epochs: 15.55, Bloat: 3.0]
+
+Rank 7:
+Equation: mul(0.029732636384331323, protected_sqrt(protected_log(hopkins)))
+Fitness: [Acc: 0.7853, Epochs: 15.35, Bloat: 5.0]
+
+Rank 8:
+Equation: mul(-0.8633875101797621, 0.029732636384331323)
+Fitness: [Acc: 0.7844, Epochs: 15.45, Bloat: 3.0]
+
+Rank 9:
+Equation: sin(0.029732636384331323)
+Fitness: [Acc: 0.7828, Epochs: 16.80, Bloat: 2.0]
+
+Rank 10:
+Equation: -0.09674951733957826
+Fitness: [Acc: 0.7733, Epochs: 17.50, Bloat: 1.0]
+

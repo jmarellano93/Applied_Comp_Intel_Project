@@ -1,0 +1,65 @@
+APPLIED COMPUTATIONAL INTELLIGENCE: MODULE 6 RESULTS
+Activation Function: RECTIFICATION
+Topology: deep_narrow
+Status: CHECKPOINT (Generation 20)
+Mode: Plan A Pareto (NSGA-II)
+========================================================================
+--- SYSTEM & ENVIRONMENT LOG ---
+Python Version: 3.12.13
+PyTorch Version: 2.5.0+cu124
+DEAP Version: 1.4
+Scikit-Learn Version: 1.8.0
+OS Platform: Linux-6.8.0-117-generic-x86_64-with-glibc2.39
+Hardware: x86_64 / x86_64
+Execution Target: CPU-ONLY (Phase A shallow FNN)
+PyTorch Threads -> intra_op: 4 | inter_op: 1
+Random Seed: 42
+Git Commit: 6510ae6ce7d4d6e474eeffd97c861b5e7f5de6cc
+--------------------------------
+========================================================================
+Population: 100 | Generations: 20
+Datasets/Rule: 20 | Batch: 64 | Topology: deep_narrow
+========================================================================
+
+Top Discovered Rules-of-Thumb:
+
+Rank 1:
+Equation: neg(-0.012968330220737956)
+Fitness: [Acc: 0.7902, Epochs: 18.05, Bloat: 2.0]
+
+Rank 2:
+Equation: mul(-0.012968330220737956, neg(protected_exp(0.1403203036464722)))
+Fitness: [Acc: 0.7871, Epochs: 17.95, Bloat: 5.0]
+
+Rank 3:
+Equation: sin(protected_log(cos(-0.24144706393241244)))
+Fitness: [Acc: 0.7867, Epochs: 16.85, Bloat: 4.0]
+
+Rank 4:
+Equation: protected_log(-0.9805536165711501)
+Fitness: [Acc: 0.7847, Epochs: 16.85, Bloat: 2.0]
+
+Rank 5:
+Equation: neg(-0.030805965859466378)
+Fitness: [Acc: 0.7808, Epochs: 16.75, Bloat: 2.0]
+
+Rank 6:
+Equation: neg(protected_log(cos(-0.24144706393241244)))
+Fitness: [Acc: 0.7785, Epochs: 16.70, Bloat: 4.0]
+
+Rank 7:
+Equation: sin(-0.030805965859466378)
+Fitness: [Acc: 0.7776, Epochs: 16.50, Bloat: 2.0]
+
+Rank 8:
+Equation: neg(mul(hopkins, 0.10334339133824355))
+Fitness: [Acc: 0.7713, Epochs: 16.40, Bloat: 4.0]
+
+Rank 9:
+Equation: sub(protected_sqrt(cos(-0.030805965859466378)), cos(iqr_dev))
+Fitness: [Acc: 0.7708, Epochs: 15.65, Bloat: 6.0]
+
+Rank 10:
+Equation: mul(mul(pc_eigen, iqr_dev), hopkins)
+Fitness: [Acc: 0.7679, Epochs: 15.90, Bloat: 5.0]
+

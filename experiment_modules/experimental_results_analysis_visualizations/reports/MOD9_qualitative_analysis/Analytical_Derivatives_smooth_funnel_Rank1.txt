@@ -1,0 +1,6 @@
+QUALITATIVE ANALYSIS: SMOOTH / funnel — Rank 1
+Equation: 0.0297326363843313*davies_bouldin - 0.0297326363843313*target_entropy
+
+Empirical Partial Derivatives:
+  d(Variance) / d(target_entropy) = -0.0297326363843313
+  d(Variance) / d(davies_bouldin) = 0.0297326363843313

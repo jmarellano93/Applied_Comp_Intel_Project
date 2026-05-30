@@ -1,0 +1,5 @@
+QUALITATIVE ANALYSIS: SQUASHING / funnel — Rank 2
+Equation: -0.00476004227707586*feat_kurtosis - 0.0113355926872378
+
+Empirical Partial Derivatives:
+  d(Variance) / d(feat_kurtosis) = -0.00476004227707586

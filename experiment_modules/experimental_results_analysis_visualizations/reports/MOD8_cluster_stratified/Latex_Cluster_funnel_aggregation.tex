@@ -1,0 +1,36 @@
+\begin{table}[htpb]
+\centering
+\caption{Cluster-Stratified Performance: Funnel / Aggregation (GP Rank-1 vs Baselines per meta-feature cluster, K=3; Holm-Bonferroni $\alpha=0.05$)}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{l | c | r r r | c}
+\hline
+\textbf{Baseline} & \textbf{Cluster} & \textbf{n} & \textbf{Wins} & \textbf{Win-Rate} & \textbf{$p_{Holm}$ (Loss)} \\
+\hline
+Xavier\_Glorot & 0 & 15 & 3 & 0.20 & 1.0000  \\
+Xavier\_Glorot & 1 & 50 & 20 & 0.40 & 1.0000  \\
+Xavier\_Glorot & 2 & 60 & 43 & 0.72 & 0.0400 \textbf{*} \\
+\hline
+He\_Kaiming & 0 & 15 & 3 & 0.20 & 1.0000  \\
+He\_Kaiming & 1 & 50 & 34 & 0.68 & 1.0000  \\
+He\_Kaiming & 2 & 60 & 48 & 0.80 & 0.0004 \textbf{*} \\
+\hline
+LeCun & 0 & 15 & 4 & 0.27 & 1.0000  \\
+LeCun & 1 & 50 & 26 & 0.52 & 1.0000  \\
+LeCun & 2 & 60 & 47 & 0.78 & 0.0007 \textbf{*} \\
+\hline
+Orthogonal & 0 & 15 & 5 & 0.33 & 1.0000  \\
+Orthogonal & 1 & 50 & 22 & 0.44 & 1.0000  \\
+Orthogonal & 2 & 60 & 38 & 0.63 & 0.5689  \\
+\hline
+FAVI & 0 & 15 & 5 & 0.33 & 1.0000  \\
+FAVI & 1 & 50 & 26 & 0.52 & 1.0000  \\
+FAVI & 2 & 60 & 42 & 0.70 & 0.0022 \textbf{*} \\
+\hline
+Laor & 0 & 15 & 9 & 0.60 & 1.0000  \\
+Laor & 1 & 50 & 37 & 0.74 & 0.0121 \textbf{*} \\
+Laor & 2 & 60 & 50 & 0.83 & 0.0003 \textbf{*} \\
+\hline
+\end{tabular}
+}
+\label{tab:cluster_stratified_funnel_aggregation}
+\end{table}

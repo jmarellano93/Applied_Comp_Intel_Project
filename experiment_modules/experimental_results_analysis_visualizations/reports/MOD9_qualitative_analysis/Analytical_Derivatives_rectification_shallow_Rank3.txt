@@ -1,0 +1,5 @@
+QUALITATIVE ANALYSIS: RECTIFICATION / shallow — Rank 3
+Equation: -sin(0.0183273290034117*n_d_ratio)
+
+Empirical Partial Derivatives:
+  d(Variance) / d(n_d_ratio) = -0.0183273290034117*cos(0.0183273290034117*n_d_ratio)
