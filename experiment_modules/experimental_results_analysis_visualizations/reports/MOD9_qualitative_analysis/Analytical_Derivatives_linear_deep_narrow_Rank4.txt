@@ -1,5 +1,0 @@
-QUALITATIVE ANALYSIS: LINEAR / deep_narrow — Rank 4
-Equation: 0.172431541152805
-
-Empirical Partial Derivatives:
-  (expression is constant — no partial derivatives)

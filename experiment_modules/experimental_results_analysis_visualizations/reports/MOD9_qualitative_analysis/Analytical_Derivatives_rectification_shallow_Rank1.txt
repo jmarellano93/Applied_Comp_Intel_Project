@@ -1,6 +1,0 @@
-QUALITATIVE ANALYSIS: RECTIFICATION / shallow — Rank 1
-Equation: -sin(0.0243970223673645*iqr_dev*n_d_ratio)
-
-Empirical Partial Derivatives:
-  d(Variance) / d(n_d_ratio) = -0.0243970223673645*iqr_dev*cos(0.0243970223673645*iqr_dev*n_d_ratio)
-  d(Variance) / d(iqr_dev) = -0.0243970223673645*n_d_ratio*cos(0.0243970223673645*iqr_dev*n_d_ratio)

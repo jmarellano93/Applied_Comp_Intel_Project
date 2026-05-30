@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 
 # =============================================================================
 class PipelineConfig(BaseModel):
-    api_key: str = Field(default="13d5e3978a2db3c8e91409ca7e75b7bd", description="OpenML API Key")
+    api_key: str = Field(default="OPENML_API_KEY_HERE", description="OpenML API Key")
     suite_id: int = Field(default=99, description="OpenML Suite ID for CC18 Curated Classification")
 
     min_instances: int = Field(default=500, description="Minimum allowed instances (rows)")

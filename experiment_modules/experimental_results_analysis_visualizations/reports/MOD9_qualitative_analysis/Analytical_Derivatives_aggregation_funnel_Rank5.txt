@@ -1,7 +1,0 @@
-QUALITATIVE ANALYSIS: AGGREGATION / funnel — Rank 5
-Equation: 0.00631934144237656*cos(feat_kurtosis*iqr_dev*n_d_ratio + 0.303047381024217)
-
-Empirical Partial Derivatives:
-  d(Variance) / d(feat_kurtosis) = -0.00631934144237656*iqr_dev*n_d_ratio*sin(feat_kurtosis*iqr_dev*n_d_ratio + 0.303047381024217)
-  d(Variance) / d(n_d_ratio) = -0.00631934144237656*feat_kurtosis*iqr_dev*sin(feat_kurtosis*iqr_dev*n_d_ratio + 0.303047381024217)
-  d(Variance) / d(iqr_dev) = -0.00631934144237656*feat_kurtosis*n_d_ratio*sin(feat_kurtosis*iqr_dev*n_d_ratio + 0.303047381024217)

@@ -1,5 +1,0 @@
-QUALITATIVE ANALYSIS: LINEAR / shallow — Rank 5
-Equation: -silhouette - 0.826122334741168
-
-Empirical Partial Derivatives:
-  d(Variance) / d(silhouette) = -1

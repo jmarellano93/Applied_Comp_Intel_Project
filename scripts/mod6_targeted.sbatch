@@ -15,7 +15,7 @@
 #SBATCH --output=logs/mod6_fixup_%A_%a.log
 #SBATCH --error=logs/mod6_fixup_%A_%a.err
 #SBATCH --mail-type=END,FAIL
-#SBATCH --mail-user=john.arellano@students.fhnw.ch
+#SBATCH --mail-user=FHNW_EMAIL_ADDRESS_HERE
 
 # 8 missing triples — each entry is "activation,topology,seed"
 TRIPLES=(

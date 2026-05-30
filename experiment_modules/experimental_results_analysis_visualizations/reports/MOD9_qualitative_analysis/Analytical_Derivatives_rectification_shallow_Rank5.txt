@@ -1,5 +1,0 @@
-QUALITATIVE ANALYSIS: RECTIFICATION / shallow — Rank 5
-Equation: 0.0297326363843313*feat_kurtosis
-
-Empirical Partial Derivatives:
-  d(Variance) / d(feat_kurtosis) = 0.0297326363843313

@@ -38,7 +38,7 @@
 #SBATCH --output=logs/mod6_%A_%a.log
 #SBATCH --error=logs/mod6_%A_%a.err
 #SBATCH --mail-type=END,FAIL
-#SBATCH --mail-user=john.arellano@students.fhnw.ch
+#SBATCH --mail-user=FHNW_EMAIL_ADDRESS_HERE
 
 # ----------------------------------------------------------------------------
 # Decode task ID into (activation, topology, seed)

@@ -1,5 +1,0 @@
-QUALITATIVE ANALYSIS: SQUASHING / deep_narrow — Rank 3
-Equation: 0.0236475935460351
-
-Empirical Partial Derivatives:
-  (expression is constant — no partial derivatives)

@@ -1,5 +1,0 @@
-QUALITATIVE ANALYSIS: SMOOTH / deep_narrow — Rank 1
-Equation: -0.119742648004175*sin(sin(iqr_dev))
-
-Empirical Partial Derivatives:
-  d(Variance) / d(iqr_dev) = -0.119742648004175*cos(iqr_dev)*cos(sin(iqr_dev))

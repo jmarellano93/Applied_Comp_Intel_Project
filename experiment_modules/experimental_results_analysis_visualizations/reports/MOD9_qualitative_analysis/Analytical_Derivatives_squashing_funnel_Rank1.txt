@@ -1,5 +1,0 @@
-QUALITATIVE ANALYSIS: SQUASHING / funnel — Rank 1
-Equation: -0.0229362957012469*silhouette
-
-Empirical Partial Derivatives:
-  d(Variance) / d(silhouette) = -0.0229362957012469

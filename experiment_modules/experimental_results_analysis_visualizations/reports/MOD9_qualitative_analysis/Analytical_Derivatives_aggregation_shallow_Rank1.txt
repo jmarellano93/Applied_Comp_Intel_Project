@@ -1,5 +1,0 @@
-QUALITATIVE ANALYSIS: AGGREGATION / shallow — Rank 1
-Equation: 0.0297326363843313*sin(0.398492264818324/davies_bouldin)
-
-Empirical Partial Derivatives:
-  d(Variance) / d(davies_bouldin) = -0.0118482256118119*cos(0.398492264818324/davies_bouldin)/davies_bouldin**2
